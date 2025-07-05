@@ -1,0 +1,451 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Servicios - Administrador de Plataforma</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'css/carrito.css' %}">
+
+    {# CSS adicional para esta página, que respeta y complementa global.css #}
+    <style>
+        /* Ajuste para que el fondo .bg-5 cubra toda la sección principal */
+        .bg-5 {
+            min-height: calc(100vh - (var(--navbar-height, 0px) + var(--footer-height, 0px)));
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        /* Contenedor principal del contenido para el efecto de "tarjeta grande" */
+        .admin-main-content-card {
+            background-color: rgba(255, 255, 255, 0.25); /* Transparencia para el efecto */
+            backdrop-filter: blur(10px); /* Efecto de cristal esmerilado */
+            -webkit-backdrop-filter: blur(10px); /* Soporte Safari */
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 2.5rem; /* Menos padding que antes, pero aún generoso */
+            margin-top: auto; /* Centra verticalmente el contenedor si el contenido es corto */
+            margin-bottom: auto; /* Centra verticalmente el contenedor si el contenido es corto */
+            flex-grow: 1; /* Permite que crezca para empujar el footer */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Tarjetas internas (formulario y tabla) */
+        .inner-card {
+            background-color: rgba(255, 255, 255, 0.5); /* Fondo ligeramente más opaco que la principal */
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem; /* Espacio entre tarjetas */
+            overflow: hidden; /* Para que el border-radius se aplique bien */
+        }
+
+        .inner-card .card-header {
+            background-color: rgba(0, 123, 255, 0.85); /* Azul primario de Bootstrap, semi-transparente */
+            color: white;
+            border-bottom: none;
+            font-size: 1.3rem; /* Título un poco más grande */
+            font-weight: bold;
+            padding: 1.25rem 1.5rem;
+            text-align: center;
+            border-top-left-radius: 10px; /* Asegura radio en las esquinas */
+            border-top-right-radius: 10px;
+        }
+
+        .inner-card .card-body {
+            padding: 1.5rem;
+            background-color: transparent; /* Permite que el fondo de .inner-card se vea */
+        }
+
+        /* Estilos para los campos del formulario dentro de la tarjeta */
+        .inner-card .form-label {
+            font-weight: 600 !important; /* Negrita para las etiquetas */
+            color: #343a40 !important; /* Color oscuro consistente */
+            /* Eliminar margin-bottom para que esté en la misma línea con el input si se usa flex */
+            margin-bottom: 0;
+            white-space: nowrap; /* Evita que el texto de la etiqueta se rompa en varias líneas */
+            padding-right: 0.5rem; /* Pequeño espacio entre la etiqueta y el campo */
+            text-align: right; /* Alinea el texto de la etiqueta a la derecha */
+            width: auto; /* Permite que la etiqueta tome su ancho natural */
+            flex-shrink: 0; /* Evita que la etiqueta se encoja */
+        }
+
+        .inner-card .form-control,
+        .inner-card .form-select {
+            background-color: rgba(248, 249, 250, 0.95) !important; /* Fondo gris claro casi opaco para el input */
+            color: #495057 !important; /* Texto gris oscuro en el input */
+            border: 1px solid rgba(173, 181, 189, 0.5) !important; /* Borde suave */
+            border-radius: 8px !important;
+            padding: 0.75rem 1rem !important;
+            text-align: right; /* Alinea el texto dentro del input a la derecha */
+            flex-grow: 1; /* Permite que el input ocupe el espacio restante en la fila flex */
+        }
+        
+        /* Ajuste específico para textarea para que el tamaño se adapte */
+        .inner-card textarea.form-control {
+            min-height: 100px; /* Altura mínima para la descripción */
+            resize: vertical; /* Permite redimensionar verticalmente */
+            text-align: left; /* Descripción generalmente se prefiere alineada a la izquierda */
+        }
+
+        /* Contenedor flex para alinear label y input en la misma línea */
+        .form-group-inline {
+            display: flex;
+            align-items: center; /* Centra verticalmente label y input */
+            margin-bottom: 1rem; /* Espacio entre grupos de campos */
+            gap: 5px; /* Espacio entre label y input */
+        }
+
+        /* Para el campo de imagen, para que el botón "Elegir archivo" no se alinee a la derecha */
+        .form-group-inline.image-field .form-control {
+            text-align: left; /* Restablece la alineación a la izquierda para el texto del input de archivo */
+        }
+
+
+        .inner-card .form-control:focus,
+        .inner-card .form-select:focus {
+            background-color: white !important;
+            border-color: #007bff !important;
+            box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25) !important;
+        }
+
+        /* Botones del formulario */
+        .inner-card .btn-primary {
+            background-color: #007bff !important;
+            border-color: #007bff !important;
+            border-radius: 8px !important;
+            padding: 0.75rem 1.5rem !important;
+            font-weight: bold;
+        }
+        .inner-card .btn-primary:hover {
+            background-color: #0056b3 !important;
+            border-color: #0056b3 !important;
+        }
+
+        .inner-card .btn-secondary { /* Para el botón Cancelar Edición */
+            background-color: #6c757d !important;
+            border-color: #6c757d !important;
+            border-radius: 8px !important;
+            padding: 0.75rem 1.5rem !important;
+            font-weight: bold;
+        }
+        .inner-card .btn-secondary:hover {
+            background-color: #5a6268 !important;
+            border-color: #5a6268 !important;
+        }
+
+        /* Tabla de servicios */
+        .table-responsive {
+            margin-top: 1.5rem; /* Espacio superior para la tabla dentro de la tarjeta */
+        }
+
+        .table thead th {
+            background-color: rgba(52, 58, 64, 0.9) !important; /* Header de tabla más oscuro y opaco */
+            color: white !important;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.03) !important; /* Franja más suave */
+        }
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.1) !important; /* Hover sutil en azul */
+        }
+
+        .img-thumbnail-service {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid rgba(0,0,0,0.1); /* Borde sutil */
+        }
+
+        .table .btn-sm {
+            padding: 0.35rem 0.75rem !important;
+            font-size: 0.85rem !important; /* Un poco más pequeño para caber mejor */
+            border-radius: 5px !important;
+            width: 100%; /* Asegura que ocupen todo el ancho disponible en la celda */
+        }
+        .table .btn-warning {
+            background-color: rgba(255, 193, 7, 0.9) !important;
+            border-color: rgba(255, 193, 7, 0.9) !important;
+            color: #333 !important;
+        }
+        .table .btn-danger {
+            background-color: rgba(220, 53, 69, 0.9) !important;
+            border-color: rgba(220, 53, 69, 0.9) !important;
+            color: white !important;
+        }
+        .table .btn-warning:hover {
+            background-color: #e0a800 !important; /* Un poco más oscuro en hover */
+        }
+        .table .btn-danger:hover {
+            background-color: #c82333 !important; /* Un poco más oscuro en hover */
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    {# Carrito Desplegable (visible solo para clientes autenticados) #}
+    {% if user.is_authenticated and user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %}
+    <div id="carrito-desplegable" class="carrito-desplegable">
+        <div class="carrito-contenido">
+            <h3>Tu Carrito</h3>
+            <div id="items-carrito">
+                <p>El carrito está vacío.</p>
+            </div>
+            <div class="carrito-total">
+                <strong>Total: $<span id="total-carrito">0</span></strong>
+            </div>
+            <a href="{% url 'carrito' %}" class="btn btn-success btn-block">Ir al Carrito Completo</a>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Navegación principal #}
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+        <div class="container">
+            {# Redirección condicional para el botón "MANAKEA TOURS" #}
+            {% if user.is_authenticated %}
+                <a class="navbar-brand fw-bold" href="{% url 'inicioregistrado' %}">MANAKEA TOURS</a>
+            {% else %}
+                <a class="navbar-brand fw-bold" href="{% url 'inicio' %}">MANAKEA TOURS</a>
+            {% endif %}
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item d-flex align-items-center">
+                            <span class="nav-link welcome-message">
+                                BIENVENIDO {{ user.nombre|upper }} {{ user.apellido|upper }}
+                                {% if user.tipo_usuario %}
+                                    <span class="user-role">({{ user.tipo_usuario.tipo_nombre|upper }})</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                        
+                        {# Marcar en negrita los servicios según la página actual #}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'hospedaje' %}active{% endif %}" href="{% url 'hospedaje' %}">HOSPEDAJE</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'actividad' %}active{% endif %}" href="{% url 'actividad' %}">ACTIVIDADES</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'gastronomia' %}active{% endif %}" href="{% url 'gastronomia' %}">GASTRONOMÍA</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'perfil' %}active{% endif %}" href="{% url 'perfil' %}">PERFIL</a>
+                        </li>
+                        
+                        {# Mostrar carrito SOLO para rol 'cliente' #}
+                        {% if user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %}
+                            <li class="nav-item">
+                                <a class="nav-link carrito-trigger" href="#">
+                                    <i class="bi bi-cart"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-danger btn-sm ms-2" href="{% url 'logout' %}">
+                                <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
+                            </a>
+                        </li>
+                    {% else %}
+                        {# Si no está autenticado #}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'hospedaje' %}active{% endif %}" href="{% url 'hospedaje' %}">HOSPEDAJE</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'actividad' %}active{% endif %}" href="{% url 'actividad' %}">ACTIVIDADES</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'gastronomia' %}active{% endif %}" href="{% url 'gastronomia' %}">GASTRONOMÍA</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'registro' %}active{% endif %}" href="{% url 'registro' %}">
+                                <i class="bi bi-person-circle"></i> Registra tu cuenta
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" href="{% url 'login' %}">
+                                <i class="bi bi-person-circle"></i> Inicio de Sesión
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="flex-grow-1 d-flex flex-column"> {# Main para empujar el footer #}
+        <section class="bg-5 d-flex flex-column flex-grow-1 py-5"> {# Aplica el fondo .bg-5 y paddings #}
+            <div class="container admin-main-content-card my-auto"> {# Contenedor principal con estilo de tarjeta, centrado verticalmente #}
+                <h2 class="mb-4 text-center text-primary">Gestión de Servicios <i class="bi bi-tools"></i></h2>
+
+                <hr class="my-4">
+
+                {# Formulario para AGREGAR/MODIFICAR Servicios #}
+                <div class="card inner-card">
+                    <div class="card-header">
+                        {% if servicio_a_editar %}
+                            Modificar Servicio: <span class="text-white-50">{{ servicio_a_editar.nombre }}</span>
+                        {% else %}
+                            Agregar Nuevo Servicio
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data" action="{% url 'listar_servicios_administrador' %}">
+                            {% csrf_token %}
+                            
+                            {# Campo oculto para indicar la acción (agregar/modificar) #}
+                            {% if servicio_a_editar %}
+                                <input type="hidden" name="action" value="modificar">
+                                <input type="hidden" name="servicio_id_modificar" value="{{ servicio_a_editar.pk }}">
+                            {% else %}
+                                <input type="hidden" name="action" value="agregar">
+                            {% endif %}
+
+                            {# Contenedor de la fila para los campos del formulario #}
+                            <div class="row">
+                                {% for field in form %}
+                                    {# La descripción y la imagen ocuparán el ancho completo #}
+                                    {% if field.name == 'descripcion' or field.name == 'imagen' %}
+                                        <div class="col-12 mb-3 {% if field.name == 'imagen' %}image-field{% endif %}">
+                                            <div class="form-group-inline">
+                                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}:</label>
+                                                {{ field }}
+                                            </div>
+                                            {% if field.help_text %}
+                                                <div class="form-text">{{ field.help_text }}</div>
+                                            {% endif %}
+                                            {% for error in field.errors %}
+                                                <div class="text-danger small">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        {# El resto de los campos se dividirán en dos columnas #}
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-group-inline">
+                                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}:</label>
+                                                {{ field }}
+                                            </div>
+                                            {% if field.help_text %}
+                                                <div class="form-text">{{ field.help_text }}</div>
+                                            {% endif %}
+                                            {% for error in field.errors %}
+                                                <div class="text-danger small">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-cloud-arrow-up me-2"></i>
+                                    {% if servicio_a_editar %}
+                                        Guardar Cambios
+                                    {% else %}
+                                        Agregar Servicio
+                                    {% endif %}
+                                </button>
+                                {% if servicio_a_editar %}
+                                    <a href="{% url 'listar_servicios_administrador' %}" class="btn btn-secondary ms-md-2">
+                                        <i class="bi bi-x-circle me-2"></i> Cancelar Edición
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <hr class="my-5">
+
+                {# Tabla de Servicios Existentes #}
+                <div class="card inner-card">
+                    <div class="card-header">
+                        Listado de Servicios Actuales
+                    </div>
+                    <div class="card-body">
+                        {% if servicios %}
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle caption-top">
+                                    <caption>Total de Servicios: {{ servicios.count }}</caption>
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>N°</th>
+                                            <th>Imagen</th>
+                                            <th>Nombre</th>
+                                            <th>Descripción</th>
+                                            <th>Precio</th>
+                                            <th>Tipo de Servicio</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for servicio in servicios %}
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td> 
+                                            <td>
+                                                {% if servicio.imagen %}
+                                                    <img src="{{ servicio.imagen.url }}" alt="{{ servicio.nombre }}" class="img-thumbnail-service">
+                                                {% else %}
+                                                    <span class="text-muted">No imagen</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ servicio.nombre }}</td>
+                                            <td>{{ servicio.descripcion|truncatechars:70 }}</td>
+                                            <td>${{ servicio.precio }}</td>
+                                            <td>{{ servicio.tipo_servicio.nombre }}</td>
+                                            <td>
+                                                <a href="{% url 'listar_servicios_administrador' %}?modificar_id={{ servicio.id }}" class="btn btn-warning btn-sm mb-1">
+                                                    <i class="bi bi-pencil-square me-1"></i> Modificar
+                                                </a>
+                                                <form method="post" action="{% url 'listar_servicios_administrador' %}" style="display:inline-block; margin-left: 0;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="eliminar_id" value="{{ servicio.id }}">
+                                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar el servicio \'{{ servicio.nombre }}\'? Esta acción es irreversible.');">
+                                                        <i class="bi bi-trash me-1"></i> Eliminar
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info text-center" role="alert">
+                                <i class="bi bi-info-circle me-2"></i> No hay servicios registrados en la plataforma aún. ¡Agrega el primero!
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-dark text-white text-center py-3 mt-auto">
+        <div class="container">
+            <p>&copy; 2025 Manakea Tours. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    {# Enlaces JS para todo el proyecto #}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/carrito.js' %}"></script> {# Asegúrate de que esta ruta JS sea correcta #}
+
+</body>
+</html>

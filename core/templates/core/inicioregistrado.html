@@ -1,0 +1,329 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Manakea - Inicio Registrado</title>
+
+    <link rel="stylesheet" href="{% static 'css/global.css'%}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/carrito.css'%}">
+
+</head>
+<body>
+
+{# Este div generalmente va al inicio del <body> o dentro de un contenedor principal #}
+{% if user.is_authenticated and user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %} {# ¡CAMBIADO A 'cliente' en minúsculas! #}
+<div id="carrito-desplegable" class="carrito-desplegable">
+    <div class="carrito-contenido">
+        <h3>Tu Carrito</h3>
+        <div id="items-carrito">
+            <p>El carrito está vacío.</p>
+        </div>
+        <div class="carrito-total">
+            <strong>Total: $<span id="total-carrito">0</span></strong>
+        </div>
+        <a href="{% url 'carrito' %}" class="btn btn-success btn-block">Ir al Carrito Completo</a>
+    </div>
+</div>
+{% endif %}
+
+{# La sección con clase "bg" ahora envuelve TODO el contenido principal, incluida la navegación y el footer #}
+<section class="bg" id="main-content">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            {# 1. Redirección condicional para el botón "MANAKEA TOURS" #}
+            {% if user.is_authenticated %}
+                <a class="navbar-brand fw-bold" href="{% url 'inicioregistrado' %}">MANAKEA TOURS</a>
+            {% else %}
+                <a class="navbar-brand fw-bold" href="{% url 'inicio' %}">MANAKEA TOURS</a>
+            {% endif %}
+            {# Fin de la redirección condicional #}
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item d-flex align-items-center">
+                            <span class="nav-link welcome-message">
+                                BIENVENIDO {{ user.nombre|upper }} {{ user.apellido|upper }}
+                                {% if user.tipo_usuario %}
+                                    <span class="user-role">({{ user.tipo_usuario.tipo_nombre|upper }})</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                        
+                        {# 3. Marcar en negrita los servicios según la página actual #}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'hospedaje' %}active{% endif %}" href="{% url 'hospedaje' %}">HOSPEDAJE</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'actividad' %}active{% endif %}" href="{% url 'actividad' %}">ACTIVIDADES</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'gastronomia' %}active{% endif %}" href="{% url 'gastronomia' %}">GASTRONOMÍA</a>
+                        </li>
+                        {# Fin de marcar en negrita #}
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'perfil' %}">PERFIL</a>
+                        </li>
+                        
+                        {# 2. Mostrar carrito SOLO para rol 'cliente' #}
+                        {% if user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %} {# 'cliente' en minúsculas #}
+                            <li class="nav-item">
+                                <a class="nav-link carrito-trigger" href="#">
+                                    <i class="bi bi-cart"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        {# Fin de carrito para rol 'cliente' #}
+
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-danger btn-sm ms-2" href="{% url 'logout' %}">
+                                <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
+                            </a>
+                        </li>
+                    {% else %}
+                        {# Si no está autenticado, estos enlaces se muestran #}
+                        {# 3. Marcar en negrita los servicios también para usuarios no autenticados #}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'hospedaje' %}active{% endif %}" href="{% url 'hospedaje' %}">HOSPEDAJE</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'actividad' %}active{% endif %}" href="{% url 'actividad' %}">ACTIVIDADES</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'gastronomia' %}active{% endif %}" href="{% url 'gastronomia' %}">GASTRONOMÍA</a>
+                        </li>
+                        {# Fin de marcar en negrita #}
+
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'registro' %}active{% endif %}" href="{% url 'registro' %}">
+                                <i class="bi bi-person-circle"></i> Registra tu cuenta
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" href="{% url 'login' %}">
+                                <i class="bi bi-person-circle"></i> Inicio de Sesión
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div id="carouselExampleSlidesOnly" class="carousel slide border border-white" data-bs-ride="carousel" style="height: 350px;">
+        <div class="carousel-inner h-100">
+            <div class="carousel-item active position-relative h-100">
+                <img src="https://www.cvc.com.br/dicas-de-viagem/wp-content/uploads/2019/09/cajon-del-maipo-embalse-el-yeso-chile.jpg"
+                     class="d-block w-100 h-100 object-fit-cover" alt="Embalse El Yeso, Cajón del Maipo">
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-white bg-dark bg-opacity-50">
+                    <h1 class="h3">BIENVENIDO A MANAKEA TOURS</h1>
+                    <p class="lead">Conecta con lo auténtico, viaja con el alma</p>
+                    {% if user.tipo_usuario %}
+                        <p class="lead">Eres un: <span class="fw-bold">{{ user.tipo_usuario.tipo_nombre|upper }}</span></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4 flex-grow-1"> {# Este es el contenedor principal que crecerá para empujar el footer #}
+        {% if user.is_authenticated and user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'administrador' %}
+        <div class="row justify-content-center"> {# Fila para centrar la tarjeta #}
+            <div class="col-12 col-md-8 profile-card-col mb-4"> {# Columna que contiene la tarjeta, centrado y con ancho responsivo #}
+                <div class="card shadow-sm h-100 admin-panel-card"> {# La tarjeta en sí, con sombra y altura completa, y clase específica #}
+                    <div class="card-header text-white"> {# Encabezado de la tarjeta con texto blanco #}
+                        <h4 class="mb-0">Panel de Administración</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center text-center"> {# Cuerpo de la tarjeta, usa flexbox para centrar contenido #}
+                        <p class="lead mb-4">Acciones rápidas para el administrador:</p>
+                        <a href="{% url 'listar_servicios_administrador' %}" class="btn btn-secondary btn-lg btn-panel">
+                            <i class="bi bi-tools me-2"></i> Gestión de Servicio
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% elif user.is_authenticated and user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'anfitrion' %}
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 profile-card-col mb-4">
+                <div class="card shadow-sm h-100 anfitrion-panel-card">
+                    <div class="card-header text-white">
+                        <h4 class="mb-0">Panel de Anfitrión</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
+                        <p class="lead mb-4">Gestiona las reservas de tus servicios de manera eficiente.</p>
+                        <a href="{% url 'listar_reservas_anfitrion' %}" class="btn btn-primary btn-lg btn-panel">
+                            <i class="bi bi-calendar-check me-2"></i> Ver Mis Reservas
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+            {# Este es el bloque para usuarios no autenticados o con otros roles (las 3 tarjetas) #}
+            <div class="container my-5"> 
+                <div class="row justify-content-center gx-5">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/02/b6/93/3e/hotel-casa-bosque.jpg?w=1200&h=-1&s=1" class="card-img-top" alt="Hospedaje">
+                            <div class="card-body">
+                                <h5 class="card-title">HOSPEDAJES</h5>
+                                <p class="card-text">Encuentra lugares únicos para alojarte.</p>
+                                <a href="{% url 'hospedaje'%}" class="btn btn-primary d-block mx-auto" style="padding: 0.4rem 0.8rem; width: fit-content; font-size: 0.85rem;">Ver más</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <img src="https://cuponassets.cuponatic-latam.com/backendCl/uploads/imagenes_descuentos/329899/b79621b5351ddf001b5f74e5271e519ae8a71328.XL2.jpg" class="card-img-top" alt="Actividades">
+                            <div class="card-body">
+                                <h5 class="card-title">ACTIVIDADES</h5>
+                                <p class="card-text">Explora experiencias inolvidables.</p>
+                                <a href="{% url 'actividad'%}" class="btn btn-primary d-block mx-auto" style="padding: 0.4rem 0.8rem; width: fit-content; font-size: 0.85rem;">Ver más</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <img src="https://www.cajondelmaipo.com/wp-content/uploads/2022/10/restaurantes_cajon_del_maipo.jpg" class="card-img-top" alt="Gastronomía">
+                            <div class="card-body">
+                                <h5 class="card-title">GASTRONOMIA</h5>
+                                <p class="card-text">Sabores que te harán volver.</p>
+                                <a href="{% url 'gastronomia'%}" class="btn btn-primary d-block mx-auto" style="padding: 0.4rem 0.8rem; width: fit-content; font-size: 0.85rem;">Ver más</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %} {# Este {% endif %} cierra todas las condiciones del bloque grande #}
+    </div> {# Cierra el div.container mt-4 flex-grow-1 #}
+
+    <section class="section-clima-mapa my-5">
+        <div class="container">
+            <div class="row justify-content-center gap-4">
+
+                {# Lógica para mostrar Clima y/o Mapa según el rol #}
+                {% if user.is_cliente %}
+                    {# Clientes ven Clima y Mapa #}
+                    <div class="col-md-5 clima-box">
+                        <div class="card-custom">
+                            <h5 class="text-center text-primary fw-bold">
+                                <i class="fas fa-cloud-sun fa-lg me-2"></i> CLIMA ACTUAL</h5>
+                            <div id="clima" class="text-center mt-3">
+                                <div class="icono-decorativo"><i class="fas fa-sun"></i></div>
+                                <p id="ciudad">Cargando ciudad...</p>
+                                <p id="temperatura">Cargando temperatura...</p>
+                                <p id="descripcion">Cargando descripción...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-5 mapa-box">
+                        <div class="card-custom">
+                            <h5 class="text-center text-primary fw-bold">
+                                <i class="fas fa-map-marker-alt fa-lg me-2"></i> UBICACIÓN EN EL MAPA </h5>
+                            <div id="map" style="height: 300px; border-radius: 10px;"></div>
+                        </div>
+                    </div>
+                {% elif user.is_anfitrion or user.is_administrador %}
+                    {# Anfitriones y Administradores ven SOLO el Clima #}
+                    <div class="col-md-5 clima-box">
+                        <div class="card-custom">
+                            <h5 class="text-center text-primary fw-bold">
+                                <i class="fas fa-cloud-sun fa-lg me-2"></i> CLIMA ACTUAL</h5>
+                            <div id="clima" class="text-center mt-3">
+                                <div class="icono-decorativo"><i class="fas fa-sun"></i></div>
+                                <p id="ciudad">Cargando ciudad...</p>
+                                <p id="temperatura">Cargando temperatura...</p>
+                                <p id="descripcion">Cargando descripción...</p>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    {# Opcional: Qué mostrar si el usuario no está logueado o tiene otro rol #}
+                    <div class="col-12 text-center">
+                        <p class="lead text-muted">Inicia sesión para ver el clima y el mapa.</p>
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </section>
+
+    {# El footer DEBE IR DENTRO de la sección .bg para que flexbox lo empuje #}
+    <footer class="bg-dark text-center text-white py-4 mt-5">
+        <div class="container">
+            <div class="mb-3">
+                <a href="https://www.instagram.com" target="_blank" class="btn btn-outline-light mx-1">
+                    <i class="bi bi-instagram"></i>
+                </a>
+                <a href="https://www.twitter.com" target="_blank" class="btn btn-outline-light mx-1">
+                    <i class="bi bi-twitter"></i>
+                </a>
+                <a href="https://www.tiktok.com" target="_blank" class="btn btn-outline-light mx-1">
+                    <i class="fa-brands fa-tiktok"></i> {# Corregido a fa-brands para TikTok #}
+                </a>
+                <a href="https://www.facebook.com" target="_blank" class="btn btn-outline-light mx-1">
+                    <i class="bi bi-facebook"></i>
+                </a>
+            </div>
+            <p class="mb-0 small">&copy; 2025 Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+</section> {# Cierra la sección .bg aquí #}
+
+    <script src="{% static 'js/carrito.js' %}"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script async
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYqeLHZ9y433qxiJ2xwTxKTyq8cnF5TlU&callback=initMap">
+    </script>
+    <script>
+        const apiKeyWeather = "1e300d5e48a8b7b31c6bb73937d9ec43";
+        const ciudad = "san jose de maipo,santiago";
+
+        fetch(`https://api.openweathermap.org/data/2.5/weather?q=${ciudad}&appid=${apiKeyWeather}&units=metric&lang=es`)
+            .then(res => res.json())
+            .then(data => {
+                const temp = data.main.temp;
+                const descripcion = data.weather[0].description;
+                const ciudad = data.name;
+                // const icono = `http://openweathermap.org/img/wn/${data.weather[0].icon}.png`; // No se usa en el HTML proporcionado
+
+                document.getElementById("temperatura").textContent = `Temperatura: ${temp}°C`;
+                document.getElementById("descripcion").textContent = `Descripción: ${descripcion}`;
+                document.getElementById("ciudad").textContent = `Ciudad: ${ciudad}`;
+                // document.getElementById("icono").src = icono; // Asegúrate de tener un elemento con id="icono" si lo usas
+            })
+            .catch(err => console.log(err));
+    </script>
+
+    <script>
+        function initMap() {
+            const cajonMaipo = { lat: -33.75, lng: -70.35 };
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 10,
+                center: cajonMaipo,
+            });
+            new google.maps.Marker({
+                position: cajonMaipo,
+                map: map,
+                title: "CAJON DEL MAIPO"
+            });
+        }
+    </script>
+</body>
+</html>
