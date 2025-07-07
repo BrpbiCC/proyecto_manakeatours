@@ -124,212 +124,71 @@
                 </div>
             </div>
         </div>
-        <!-- AQUI COMIENZAN EL CODIGO DE LOS DETALLES DE ACTIVIDADES-->
+        
         <div class="container my-5">
-            <h2 class="text-center mb-4">NUESTRAS MEJORES ACTIVIDADES</h2>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                <div class="col">
-                    <div class="card h-100 ">
-                        <img src="{% static 'img/actividad-1.jpg'%}" class="card-img-top" alt="Cabalgatas">
-                        <div class="card-body">
-                            <h5 class="card-title">CABALGATAS</h5>
-                            <p class="card-text">Explora la majestuosidad del Cajón del Maipo de una manera única: a caballo.</p>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><strong>Precio Base:</strong> $<span class="service-base-price">95.00</span> / persona</li> {# Changed to "Precio Base" and added span for price #}
-                            <li class="list-group-item"><strong>Duracion:</strong> 2 hrs</li>
-                            <li class="list-group-item">
-                                <strong>Numero personas:</strong>
-                                <input type="number" class="num-personas-input" name="num_personas" min="1" value="1"> {# Added class and unique id #}
-                            </li>
-                            <li class="list-group-item"><strong>Ubicación:</strong> Centro de la ciudad</li>
-                        </ul>
-
-                        <div class="card-body">
-                            <form action="#" method="POST" class="reservation-form" data-service-id="1">
-                                {% csrf_token %} {# ¡No olvides el token CSRF para Django! #}
-                                <div class="mb-3">
-                                    <label for="fecha-actividad-1" class="form-label visually-hidden">Seleccionar Fecha</label> {# Changed to single date picker #}
-                                    <input type="text" class="form-control single-date-picker" id="fecha-actividad-1" name="fecha_reserva" placeholder="Selecciona una fecha"> {# Changed to single date picker #}
-                                    <div class="form-text mt-2 text-muted" id="price-display-1">Precio: $95.00</div> {# Corrected initial price #}
-                                </div>
-                                <div class="d-flex flex-column align-items-center gap-2"> {# MODIFIED HERE #}
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-dates-button"><i class="bi bi-x-circle"></i> Limpiar Fecha</button> {# Changed text #}
-                                    <button type="submit" class="btn btn-success btn-sm">Añadir al carrito</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6"> 
+            <div class="card h-100 shadow-lg"> 
+                {% if servicio.imagen %}
+                    <img src="{{ servicio.imagen.url }}" class="card-img-top" alt="{{ servicio.nombre }}">
+                {% else %}
+                    <img src="{% static 'img/no-image.jpg' %}" class="card-img-top" alt="Sin imagen disponible">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ servicio.nombre }}</h5>
+                    <p class="card-text">{{ servicio.descripcion }}</p>
                 </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>Precio Base:</strong> ${{ servicio.precio_base|floatformat:2 }} / persona</li> {# Usamos precio_base según tu imagen #}
+                    
+                    {% if servicio.duracion %}
+                        <li class="list-group-item"><strong>Duración:</strong> {{ servicio.duracion }}</li>
+                    {% endif %}
+                    
+                    {% if servicio.ubicacion %}
+                        <li class="list-group-item"><strong>Ubicación:</strong> {{ servicio.ubicacion }}</li>
+                    {% endif %}
+                    
+                    {# Otros campos específicos de actividad si los tuvieras en el modelo Servicio #}
+                </ul>
 
-                <div class="col">
-                    <div class="card h-100">
-                        <img src="{% static 'img/actividad-2.jpg'%}" class="card-img-top" alt="Rafting">
-                        <div class="card-body">
-                            <h5 class="card-title">RAFTING</h5>
-                            <p class="card-text">Navega por rápidos desafiantes y disfruta la fuerza del río en una experiencia grupal inolvidable.</p>
+                <div class="card-body">
+                    {# Formulario para actividad #}
+                    <form action="#" method="POST" class="add-to-cart-form" data-service-id="{{ servicio.id }}" data-service-type="actividad" data-price-per-person="{{ servicio.precio_base }}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="cantidad-participantes-{{ servicio.id }}" class="form-label">Número de personas:</label>
+                            <input type="number" class="form-control" id="cantidad-participantes-{{ servicio.id }}" name="cantidad_participantes" value="1" min="1">
                         </div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><strong>Precio Base:</strong> $<span class="service-base-price">95.00</span> / persona</li> {# Changed to "Precio Base" and added span for price #}
-                            <li class="list-group-item"><strong>Duracion:</strong> 2 hrs</li>
-                            <li class="list-group-item">
-                                <strong>Numero personas:</strong>
-                                <input type="number" class="num-personas-input" name="num_personas" min="1" value="1"> {# Added class and unique id #}
-                            </li>
-                            <li class="list-group-item"><strong>Ubicación:</strong> Centro de la ciudad</li>
-                        </ul>
-                        <div class="card-body">
-                            <form action="#" method="POST" class="reservation-form" data-service-id="2">
-                                {% csrf_token %}
-                                <div class="mb-3">
-                                    <label for="fecha-actividad-2" class="form-label visually-hidden">Seleccionar Fecha</label> {# Changed to single date picker #}
-                                    <input type="text" class="form-control single-date-picker" id="fecha-actividad-2" name="fecha_reserva" placeholder="Selecciona una fecha"> {# Changed to single date picker #}
-                                    <div class="form-text mt-2 text-muted" id="price-display-2">Precio: $95.00</div> {# Corrected initial price #}
-                                </div>
-                                <div class="d-flex flex-column align-items-center gap-2"> {# MODIFIED HERE #}
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-dates-button"><i class="bi bi-x-circle"></i> Limpiar Fecha</button> {# Changed text #}
-                                    <button type="submit" class="btn btn-success btn-sm">Añadir al carrito</button>
-                                </div>
-                            </form>
+                        <div class="mb-3">
+                            <label for="fecha-actividad-{{ servicio.id }}" class="form-label">Selecciona una fecha:</label>
+                            <input type="date" class="form-control" id="fecha-actividad-{{ servicio.id }}" name="fecha_actividad" required>
                         </div>
-                    </div>
-                </div>
+                        <div class="form-text mt-2 text-muted" id="price-display-actividad-{{ servicio.id }}">Precio estimado: ${{ servicio.precio_base|floatformat:2 }}</div>
+                        <div class="d-flex justify-content-center mb-3">
+                            <button type="button" class="btn btn-outline-secondary btn-sm clear-flatpickr" data-target-flatpickr="fecha-actividad-{{ servicio.id }}">
+                                <i class="bi bi-x-circle me-1"></i> Limpiar Fecha
+                            </button>
+                        </div>
 
-                <div class="col">
-                    <div class="card h-100">
-                        <img src="{% static 'img/actividad-3.jpg'%}" class="card-img-top" alt="Canopy">
-                        <div class="card-body">
-                            <h5 class="card-title">CANOPY</h5>
-                            <p class="card-text">Vuela entre los árboles y contempla la naturaleza desde lo alto con pura emoción y libertad.</p>
+                        <div class="card-hospedaje d-flex justify-content-center">
+                            {% if user.is_authenticated and user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %}
+                                <button type="submit" class="btn btn-success btn-sm">Añadir al carrito</button>
+                            {% else %}
+                                <button type="button" class="btn btn-primary d-block mx-auto" style="padding: 0.4rem 0.8rem; width: fit-content; font-size: 0.85rem;"
+                                        data-bs-toggle="popover" data-bs-placement="right"
+                                        data-bs-title="Advertencia"
+                                        data-bs-content="Necesitas estar registrado para poder acceder al carrito de compras y poder reservar!!">
+                                    Añadir al carrito
+                                </button>
+                            {% endif %}
                         </div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><strong>Precio Base:</strong> $<span class="service-base-price">95.00</span> / persona</li> {# Changed to "Precio Base" and added span for price #}
-                            <li class="list-group-item"><strong>Duracion:</strong> 2 hrs</li>
-                            <li class="list-group-item">
-                                <strong>Numero personas:</strong>
-                                <input type="number" class="num-personas-input" name="num_personas" min="1" value="1"> {# Added class and unique id #}
-                            </li>
-                            <li class="list-group-item"><strong>Ubicación:</strong> Centro de la ciudad</li>
-                        </ul>
-                        <div class="card-body">
-                            <form action="#" method="POST" class="reservation-form" data-service-id="3">
-                                {% csrf_token %}
-                                <div class="mb-3">
-                                    <label for="fecha-actividad-3" class="form-label visually-hidden">Seleccionar Fecha</label>
-                                    <input type="text" class="form-control single-date-picker" id="fecha-actividad-3" name="fecha_reserva" placeholder="Selecciona una fecha">
-                                    <div class="form-text mt-2 text-muted" id="price-display-3">Precio: $95.00</div> {# Corrected initial price #}
-                                </div>
-                                <div class="d-flex flex-column align-items-center gap-2"> {# MODIFIED HERE #}
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-dates-button"><i class="bi bi-x-circle"></i> Limpiar Fecha</button>
-                                    <button type="submit" class="btn btn-success btn-sm">Añadir al carrito</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="card h-100">
-                        <img src="{% static 'img/actividad-4.jpg'%}" class="card-img-top" alt="Trekking">
-                        <div class="card-body">
-                            <h5 class="card-title">TREKKING</h5>
-                            <p class="card-text">Recorre senderos únicos, conecta con la montaña y disfruta de paisajes que te quitarán el aliento.</p>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><strong>Precio Base:</strong> $<span class="service-base-price">95.00</span> / persona</li> {# Changed to "Precio Base" and added span for price #}
-                            <li class="list-group-item"><strong>Duracion:</strong> 2 hrs</li>
-                            <li class="list-group-item">
-                                <strong>Numero personas:</strong>
-                                <input type="number" class="num-personas-input" name="num_personas" min="1" value="1"> {# Added class and unique id #}
-                            </li>
-                            <li class="list-group-item"><strong>Ubicación:</strong> Centro de la ciudad</li>
-                        </ul>
-
-                        <div class="card-body">
-                            <form action="#" method="POST" class="reservation-form" data-service-id="4"> {# Changed service-id to 4 #}
-                                {% csrf_token %} {# ¡No olvides el token CSRF para Django! #}
-                                <div class="mb-3">
-                                    <label for="fecha-actividad-4" class="form-label visually-hidden">Seleccionar Fecha</label> {# Changed id to 4 #}
-                                    <input type="text" class="form-control single-date-picker" id="fecha-actividad-4" name="fecha_reserva" placeholder="Selecciona una fecha"> {# Changed id to 4 #}
-                                    <div class="form-text mt-2 text-muted" id="price-display-4">Precio: $95.00</div> {# Corrected initial price #}
-                                </div>
-                                <div class="d-flex flex-column align-items-center gap-2"> {# MODIFIED HERE #}
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-dates-button"><i class="bi bi-x-circle"></i> Limpiar Fecha</button>
-                                    <button type="submit" class="btn btn-success btn-sm">Añadir al carrito</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="card h-100">
-                        <img src="{% static 'img/actividad-5.jpg'%}" class="card-img-top" alt="Muro de Escalada">
-                        <div class="card-body">
-                            <h5 class="card-title">MURO DE ESCALADA</h5>
-                            <p class="card-text">Desafía la gravedad en un entorno seguro y entretenido, ideal para todas las edades.</p>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><strong>Precio Base:</strong> $<span class="service-base-price">95.00</span> / persona</li> {# Changed to "Precio Base" and added span for price #}
-                            <li class="list-group-item"><strong>Duracion:</strong> 2 hrs</li>
-                            <li class="list-group-item">
-                                <strong>Numero personas:</strong>
-                                <input type="number" class="num-personas-input" name="num_personas" min="1" value="1"> {# Added class and unique id #}
-                            </li>
-                            <li class="list-group-item"><strong>Ubicación:</strong> Centro de la ciudad</li>
-                        </ul>
-
-                        <div class="card-body">
-                            <form action="#" method="POST" class="reservation-form" data-service-id="5"> {# Changed service-id to 5 #}
-                                {% csrf_token %} {# ¡No olvides el token CSRF para Django! #}
-                                <div class="mb-3">
-                                    <label for="fecha-actividad-5" class="form-label visually-hidden">Seleccionar Fecha</label> {# Changed id to 5 #}
-                                    <input type="text" class="form-control single-date-picker" id="fecha-actividad-5" name="fecha_reserva" placeholder="Selecciona una fecha"> {# Changed id to 5 #}
-                                    <div class="form-text mt-2 text-muted" id="price-display-5">Precio: $95.00</div> {# Corrected initial price #}
-                                </div>
-                                <div class="d-flex flex-column align-items-center gap-2"> {# MODIFIED HERE #}
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-dates-button"><i class="bi bi-x-circle"></i> Limpiar Fecha</button>
-                                    <button type="submit" class="btn btn-success btn-sm">Añadir al carrito</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="card h-100">
-                        <img src="{% static 'img/actividad-6.jpg'%}" class="card-img-top" alt="Cuerdas Altas">
-                        <div class="card-body">
-                            <h5 class="card-title">CUERDAS ALTAS</h5>
-                            <p class="card-text">Pon a prueba tu equilibrio y destreza en circuitos elevados entre árboles y plataformas.</p>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><strong>Precio Base:</strong> $<span class="service-base-price">95.00</span> / persona</li> {# Changed to "Precio Base" and added span for price #}
-                            <li class="list-group-item"><strong>Duracion:</strong> 2 hrs</li>
-                            <li class="list-group-item">
-                                <strong>Numero personas:</strong>
-                                <input type="number" class="num-personas-input" name="num_personas" min="1" value="1"> {# Added class and unique id #}
-                            </li>
-                            <li class="list-group-item"><strong>Ubicación:</strong> Centro de la ciudad</li>
-                        </ul>
-
-                        <div class="card-body">
-                            <form action="#" method="POST" class="reservation-form" data-service-id="6"> {# Changed service-id to 6 #}
-                                {% csrf_token %} {# ¡No olvides el token CSRF para Django! #}
-                                <div class="mb-3">
-                                    <label for="fecha-actividad-6" class="form-label visually-hidden">Seleccionar Fecha</label> {# Changed id to 6 #}
-                                    <input type="text" class="form-control single-date-picker" id="fecha-actividad-6" name="fecha_reserva" placeholder="Selecciona una fecha"> {# Changed id to 6 #}
-                                    <div class="form-text mt-2 text-muted" id="price-display-6">Precio: $95.00</div> {# Corrected initial price #}
-                                </div>
-                                <div class="d-flex flex-column align-items-center gap-2"> {# MODIFIED HERE #}
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-dates-button"><i class="bi bi-x-circle"></i> Limpiar Fecha</button>
-                                    <button type="submit" class="btn btn-success btn-sm">Añadir al carrito</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
         <footer class="bg-dark text-center text-white py-4 mt-5">
             <div class="container">
