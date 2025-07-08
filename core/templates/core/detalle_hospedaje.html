@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Hospedajes - Manakea Tours</title> 
+    <title>Hospedajes - Manakea Tours</title>
     <link rel="stylesheet" href="{% static 'css/global.css'%}">
     <link rel="stylesheet" href="{% static 'css/carrito.css'%}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -151,14 +151,19 @@
                         </ul>
 
                         <div class="card-body">
-                            {# El formulario ahora apunta a una URL POST para añadir al carrito #}
-                            <form action="#" method="POST" class="reservation-form" data-service-id="{{ servicio.id }}" data-service-type="{{ servicio.tipo_servicio.nombre }}" data-price-per-night="{{ servicio.precio_base }}">
+                            {# The form now points to a POST URL for adding to cart #}
+                            <form action="#" method="POST" class="reservation-form" 
+                                data-service-id="{{ servicio.id }}" 
+                                data-service-type="{{ servicio.tipo_servicio.nombre|capfirst }}" 
+                                data-price-per-person="{{ servicio.precio_base }}"> {# Changed to data-price-per-person for consistency #}
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="fecha-reserva-{{ servicio.id }}" class="form-label visually-hidden">Seleccionar Fechas</label>
-                                    <input type="text" class="form-control date-range-picker" id="fecha-reserva-{{ servicio.id }}" name="fechas_reserva" placeholder="Selecciona fecha(s)">
-                                    <div class="form-text mt-2 text-muted" id="price-display-{{ servicio.id }}">Precio estimado: $0.00</div>
-                                </div>
+                                    <input type="text" class="form-control date-input date-range-picker" id="fecha-reserva-{{ servicio.id }}" name="fechas_reserva" placeholder="Selecciona fecha(s)">
+                                </div> 
+                                {# REMOVED: Input for number of adults #}
+                                
+                                <div class="form-text mt-2 text-muted" id="price-display-{{ servicio.id }}">Precio estimado: $0.00</div>
                                 <div class="d-flex justify-content-center mb-3">
                                     <button type="button" class="btn btn-outline-secondary btn-sm clear-flatpickr" data-target-flatpickr="fecha-reserva-{{ servicio.id }}">
                                         <i class="bi bi-x-circle me-1"></i> Limpiar Fechas
@@ -166,14 +171,9 @@
                                 </div>
                                 <div class="card-hospedaje d-flex justify-content-center">
                                     {% if user.is_authenticated and user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %}
-                                        <button type="submit" class="btn btn-success btn-sm">Añadir al carrito</button>
-                                    {% else %}
-                                        <button type="button" class="btn btn-primary d-block mx-auto" style="padding: 0.4rem 0.8rem; width: fit-content; font-size: 0.85rem;"
-                                                data-bs-toggle="popover" data-bs-placement="right"
-                                                data-bs-title="Advertencia"
-                                                data-bs-content="Necesitas estar registrado para poder acceder al carrito de compras y poder reservar!!">
-                                            Añadir al carrito
-                                        </button>
+                                    <button type="button" class="btn btn-success btn-sm add-to-cart-btn">
+                                        Añadir al carrito
+                                    </button>
                                     {% endif %}
                                 </div>
                             </form>
@@ -219,37 +219,28 @@
             onChange: function(selectedDates, dateStr, instance) {
                 const cardBody = instance.element.closest('.card-body');
                 const priceDisplay = cardBody.querySelector('[id^="price-display-"]');
-                const serviceType = instance.element.closest('.reservation-form').dataset.serviceType; 
+                const form = instance.element.closest('.reservation-form');
+                const serviceType = form.dataset.serviceType; 
+                // In Hospedaje, if you don't want "Número de Adultos" to affect price, always treat it as 1.
+                const numberOfPeople = 1; // Fixed at 1 for Hospedaje
 
-                if (serviceType === 'hospedaje') {
-                    let servicePricePerNight = 0;
-                    const priceListItem = instance.element.closest('.card').querySelector('.list-group-item:nth-child(1)');
-                    if (priceListItem) {
-                        const priceText = priceListItem.innerText;
-                        const match = priceText.match(/\$([\d.]+)/);
-                        if (match && match[1]) {
-                            servicePricePerNight = parseFloat(match[1]);
-                        } else {
-                            console.warn("Could not parse price from:", priceText);
-                        }
-                    } else {
-                        console.warn("Price list item not found for service type 'hospedaje'.");
-                    }
-
+                // Ensure serviceType is treated correctly
+                if (serviceType.toLowerCase() === 'hospedaje') {
+                    let servicePricePerNight = parseFloat(form.dataset.pricePerPerson); // Get from dataset
+                    
                     if (selectedDates.length === 2) {
                         const startDate = selectedDates[0];
                         const endDate = selectedDates[1];
                         // Calculate the number of nights
-                        // We need to ensure we're calculating based on actual date difference for nights.
-                        // Example: 2025-07-04 to 2025-07-12 is 8 nights.
                         const diffTime = endDate.getTime() - startDate.getTime(); // Get difference in milliseconds
                         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)); // Convert to days and round
 
-                        const estimatedPrice = (diffDays * servicePricePerNight).toFixed(2);
+                        const estimatedPrice = (diffDays * servicePricePerNight * numberOfPeople).toFixed(2);
                         priceDisplay.innerText = `Noches: ${diffDays} (${startDate.toLocaleDateString('es-CL')} al ${endDate.toLocaleDateString('es-CL')}) - Precio estimado: $${estimatedPrice}`;
                     } else if (selectedDates.length === 1) {
                         // If only one date is selected, it represents 1 night for a reservation starting on that day.
-                        priceDisplay.innerText = `Noches: 1 (${selectedDates[0].toLocaleDateString('es-CL')}) - Precio estimado: $${servicePricePerNight.toFixed(2)}`;
+                        const estimatedPrice = (servicePricePerNight * numberOfPeople).toFixed(2);
+                        priceDisplay.innerText = `Noches: 1 (${selectedDates[0].toLocaleDateString('es-CL')}) - Precio estimado: $${estimatedPrice}`;
                     } else {
                         priceDisplay.innerText = `Precio estimado: $0.00`;
                     }
@@ -257,7 +248,7 @@
             }
         };
 
-        // Options for single date picker (Actividades)
+        // Options for single date picker (Actividades y Gastronomía)
         const singlePickerOptions = {
             mode: "single",
             minDate: "today",
@@ -266,26 +257,20 @@
             onChange: function(selectedDates, dateStr, instance) {
                 const cardBody = instance.element.closest('.card-body');
                 const priceDisplay = cardBody.querySelector('[id^="price-display-"]');
-                let servicePrice = 0;
+                const form = instance.element.closest('.reservation-form');
+                const servicePrice = parseFloat(form.dataset.pricePerPerson); // Get from dataset
+                // For Actividades/Gastronomía, assuming you still want a "Número de Personas" input
+                // If you want to remove this too for activities, then also remove the num_personas_input from those templates.
+                const numPeopleInput = form.querySelector('.num-personas-input'); 
+                const numberOfPeople = numPeopleInput ? parseInt(numPeopleInput.value) : 1;
 
-                // For activities, the price is the second list-group-item
-                const priceListItem = instance.element.closest('.card').querySelector('.list-group-item:nth-child(2)');
-                if (priceListItem) {
-                    const priceText = priceListItem.innerText;
-                    const match = priceText.match(/\$([\d.]+)/);
-                    if (match && match[1]) {
-                        servicePrice = parseFloat(match[1]);
-                    } else {
-                        console.warn("Could not parse price from:", priceText);
-                    }
-                } else {
-                    console.warn("Price list item not found for service type 'actividad'.");
-                }
 
                 if (selectedDates.length === 1) {
-                    priceDisplay.innerText = `Fecha seleccionada: ${selectedDates[0].toLocaleDateString('es-CL')} - Precio: $${servicePrice.toFixed(2)}`;
+                    const estimatedPrice = (servicePrice * numberOfPeople).toFixed(2);
+                    priceDisplay.innerText = `Fecha seleccionada: ${selectedDates[0].toLocaleDateString('es-CL')} - Precio: $${estimatedPrice}`;
                 } else {
-                    priceDisplay.innerText = `Precio: $${servicePrice.toFixed(2)}`; // Reset to base price if date cleared
+                    const estimatedPrice = (servicePrice * numberOfPeople).toFixed(2);
+                    priceDisplay.innerText = `Precio: $${estimatedPrice}`; // Reset to base price if date cleared
                 }
             }
         };
@@ -297,16 +282,15 @@
             const dateInput = form.querySelector('input[type="text"][id^="fecha-reserva-"]');
 
             if (dateInput) {
-                if (serviceType === 'hospedaje') {
+                if (serviceType.toLowerCase() === 'hospedaje') { // Use toLowerCase for robustness
                     const instance = flatpickr(dateInput, rangePickerOptions);
                     flatpickrInstances[dateInput.id] = instance;
-                } else if (serviceType === 'actividad') {
+                } else if (serviceType.toLowerCase() === 'actividad' || serviceType.toLowerCase() === 'gastronomía') { // Applied to Actividad and Gastronomía
                     const instance = flatpickr(dateInput, singlePickerOptions);
                     flatpickrInstances[dateInput.id] = instance;
                 }
             }
         });
-
 
         // Add event listeners for clear buttons
         document.querySelectorAll('.clear-flatpickr').forEach(button => {
@@ -315,27 +299,38 @@
                 if (flatpickrInstances[targetId]) {
                     flatpickrInstances[targetId].clear(); // Clear the Flatpickr instance
                     // Reset the price display after clearing
-                    const cardBody = this.closest('.card-body');
-                    const priceDisplay = cardBody.querySelector('[id^="price-display-"]');
-                    const serviceType = this.closest('.reservation-form').dataset.serviceType;
+                    const form = this.closest('.reservation-form');
+                    const priceDisplay = form.querySelector('[id^="price-display-"]');
+                    const serviceType = form.dataset.serviceType;
+                    const servicePrice = parseFloat(form.dataset.pricePerPerson);
+                    const numPeopleInput = form.querySelector('.num-personas-input');
+                    const numberOfPeople = numPeopleInput ? parseInt(numPeopleInput.value) : 1;
 
-                    if (serviceType === 'hospedaje') {
+
+                    if (serviceType.toLowerCase() === 'hospedaje') {
                        priceDisplay.innerText = `Precio estimado: $0.00`;
-                    } else if (serviceType === 'actividad') {
-                        let servicePrice = 0;
-                        const priceListItem = this.closest('.card').querySelector('.list-group-item:nth-child(2)');
-                        if (priceListItem) {
-                            const priceText = priceListItem.innerText;
-                            const match = priceText.match(/\$([\d.]+)/);
-                            if (match && match[1]) {
-                                servicePrice = parseFloat(match[1]);
-                            }
-                        }
-                        priceDisplay.innerText = `Precio: $${servicePrice.toFixed(2)}`;
+                    } else if (serviceType.toLowerCase() === 'actividad' || serviceType.toLowerCase() === 'gastronomía') {
+                       priceDisplay.innerText = `Precio: $${(servicePrice * numberOfPeople).toFixed(2)}`;
                     }
                 }
             });
         });
+
+        // The following block for 'num-personas-input' event listener is only relevant
+        // if you have `num-personas-input` fields on other pages (like actividades or gastronomía)
+        // If you remove all `num-personas-input` fields across all templates, this block can be removed.
+        document.querySelectorAll('.num-personas-input').forEach(input => {
+            input.addEventListener('change', function() {
+                const form = this.closest('.reservation-form');
+                const dateInput = form.querySelector('.date-input');
+                const flatpickrInstance = dateInput._flatpickr;
+                if (flatpickrInstance && flatpickrInstance.selectedDates.length > 0) {
+                    // Trigger the onChange handler of flatpickr to re-calculate the price
+                    flatpickrInstance.config.onChange(flatpickrInstance.selectedDates, flatpickrInstance.input.value, flatpickrInstance);
+                }
+            });
+        });
+
     });
 </script>
 

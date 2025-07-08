@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 <body>
-<!--comienza carrito desplegable -->
 <div id="carrito-desplegable" class="carrito-desplegable">
     <div class="carrito-contenido">
         <h3>Tu Carrito</h3>
@@ -124,11 +123,11 @@
                 </div>
             </div>
         </div>
-        
         <div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6"> 
-            <div class="card h-100 shadow-lg"> 
+            <h2 class="text-center mb-4">NUESTRAS MEJORES ACTIVIDADES</h2>
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6"> 
+                <div class="card h-100 shadow-lg"> 
                 {% if servicio.imagen %}
                     <img src="{{ servicio.imagen.url }}" class="card-img-top" alt="{{ servicio.nombre }}">
                 {% else %}
@@ -139,7 +138,9 @@
                     <p class="card-text">{{ servicio.descripcion }}</p>
                 </div>
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item"><strong>Precio Base:</strong> ${{ servicio.precio_base|floatformat:2 }} / persona</li> {# Usamos precio_base según tu imagen #}
+                    <li class="list-group-item">
+                        <strong>Precio Base:</strong> $<span class="service-base-price">{{ servicio.precio_base|floatformat:2 }}</span> / persona
+                    </li> {# **CHANGE 1: Added class `service-base-price` to span** #}
                     
                     {% if servicio.duracion %}
                         <li class="list-group-item"><strong>Duración:</strong> {{ servicio.duracion }}</li>
@@ -154,16 +155,22 @@
 
                 <div class="card-body">
                     {# Formulario para actividad #}
-                    <form action="#" method="POST" class="add-to-cart-form" data-service-id="{{ servicio.id }}" data-service-type="actividad" data-price-per-person="{{ servicio.precio_base }}">
+                    <form action="#" method="POST" class="add-to-cart-form reservation-form" {# **FIX: Added reservation-form class** #}
+                            data-service-id="{{ servicio.id }}" 
+                            data-service-type="Actividad" {# **FIX: Capitalized Actividad for consistency** #}
+                            data-price-per-person="{{ servicio.precio_base }}"> {# **CHANGE 2: Added data-price-per-person to form** #}
                         {% csrf_token %}
                         <div class="mb-3">
                             <label for="cantidad-participantes-{{ servicio.id }}" class="form-label">Número de personas:</label>
-                            <input type="number" class="form-control" id="cantidad-participantes-{{ servicio.id }}" name="cantidad_participantes" value="1" min="1">
+                            <input type="number" class="form-control num-personas-input" {# **CHANGE 3: Added class `num-personas-input`** #}
+                                        id="cantidad-participantes-{{ servicio.id }}" name="cantidad_participantes" value="1" min="1">
                         </div>
                         <div class="mb-3">
                             <label for="fecha-actividad-{{ servicio.id }}" class="form-label">Selecciona una fecha:</label>
-                            <input type="date" class="form-control" id="fecha-actividad-{{ servicio.id }}" name="fecha_actividad" required>
+                            <input type="date" class="form-control single-date-picker date-input" {# **FIX: Added date-input class for easier selection** #}
+                                        id="fecha-actividad-{{ servicio.id }}" name="fecha_actividad" required>
                         </div>
+                        
                         <div class="form-text mt-2 text-muted" id="price-display-actividad-{{ servicio.id }}">Precio estimado: ${{ servicio.precio_base|floatformat:2 }}</div>
                         <div class="d-flex justify-content-center mb-3">
                             <button type="button" class="btn btn-outline-secondary btn-sm clear-flatpickr" data-target-flatpickr="fecha-actividad-{{ servicio.id }}">
@@ -173,7 +180,7 @@
 
                         <div class="card-hospedaje d-flex justify-content-center">
                             {% if user.is_authenticated and user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %}
-                                <button type="submit" class="btn btn-success btn-sm">Añadir al carrito</button>
+                                <button type="submit" class="btn btn-success btn-sm add-to-cart-btn">Añadir al carrito</button> {# **CHANGE 5: Added class `add-to-cart-btn` to submit button** #}
                             {% else %}
                                 <button type="button" class="btn btn-primary d-block mx-auto" style="padding: 0.4rem 0.8rem; width: fit-content; font-size: 0.85rem;"
                                         data-bs-toggle="popover" data-bs-placement="right"
@@ -204,9 +211,7 @@
     </section> {# Cierra la sección bg-2 que abriste al inicio #}
 </div> {# Cierra el div main-content #}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -219,9 +224,11 @@
             onChange: function(selectedDates, dateStr, instance) {
                 const cardBody = instance.element.closest('.card-body');
                 const priceDisplay = cardBody.querySelector('[id^="price-display-"]');
-                const serviceBasePrice = parseFloat(instance.element.closest('.card').querySelector('.service-base-price').innerText.trim());
-                const numPeopleInput = instance.element.closest('.card').querySelector('.num-personas-input');
-                const numberOfPeople = numPeopleInput ? parseInt(numPeopleInput.value) : 1; // Default to 1 if not found
+                // Correctly get serviceBasePrice from the data attribute on the form
+                const form = instance.element.closest('form'); // **FIX: Get form for consistent data attribute access**
+                const serviceBasePrice = parseFloat(form.dataset.pricePerPerson); // **CHANGE**
+                const numPeopleInput = form.querySelector('.num-personas-input'); // **CHANGE**
+                const numberOfPeople = numPeopleInput ? parseInt(numPeopleInput.value) : 1; 
 
                 if (selectedDates.length === 2) {
                     const startDate = selectedDates[0];
@@ -250,16 +257,20 @@
             locale: "es",
             onChange: function(selectedDates, dateStr, instance) {
                 const card = instance.element.closest('.card');
+                const form = instance.element.closest('form'); // **NEW: Get the form**
                 const priceDisplay = card.querySelector('[id^="price-display-"]');
-                const serviceBasePrice = parseFloat(card.querySelector('.service-base-price').innerText.trim());
-                const numPeopleInput = card.querySelector('.num-personas-input');
-                const numberOfPeople = numPeopleInput ? parseInt(numPeopleInput.value) : 1; // Default to 1 if not found
+                // Get serviceBasePrice from data attribute on the form
+                const serviceBasePrice = parseFloat(form.dataset.pricePerPerson); // **CHANGE**
+                const numPeopleInput = form.querySelector('.num-personas-input'); // **CHANGE**
+                const numberOfPeople = numPeopleInput ? parseInt(numPeopleInput.value) : 1; 
 
                 if (selectedDates.length === 1) {
                     const estimatedPrice = (serviceBasePrice * numberOfPeople).toFixed(2);
                     priceDisplay.innerText = `Fecha seleccionada: ${dateStr} - Personas: ${numberOfPeople} - Precio: $${estimatedPrice}`;
                 } else {
-                    priceDisplay.innerText = `Precio: $${(serviceBasePrice * numberOfPeople).toFixed(2)}`;
+                    // This else block handles clearing the date.
+                    // When the date is cleared, revert to price based on number of people, without date info.
+                    priceDisplay.innerText = `Precio: $${(serviceBasePrice * numberOfPeople).toFixed(2)}`; // **CHANGE**
                 }
             }
         });
@@ -268,9 +279,11 @@
         document.querySelectorAll('.num-personas-input').forEach(input => {
             input.addEventListener('change', function() {
                 const card = this.closest('.card');
+                const form = this.closest('form'); // **NEW: Get the form**
                 const priceDisplay = card.querySelector('[id^="price-display-"]');
-                const dateInput = card.querySelector('.form-control'); // Either single-date-picker or date-range-picker
-                const serviceBasePrice = parseFloat(card.querySelector('.service-base-price').innerText.trim());
+                const dateInput = form.querySelector('.date-input'); // **FIX: Using the new class for consistency**
+                // Get serviceBasePrice from data attribute on the form
+                const serviceBasePrice = parseFloat(form.dataset.pricePerPerson); // **CHANGE**
                 const numberOfPeople = parseInt(this.value);
 
                 if (dateInput.classList.contains('single-date-picker')) {
@@ -299,6 +312,7 @@
                             priceDisplay.innerText = `Selecciona al menos 1 noche.`;
                         }
                     } else {
+                        // If no range selected, price is 0
                         priceDisplay.innerText = `Precio estimado: $0.00`;
                     }
                 }
@@ -306,16 +320,16 @@
         });
 
         // Add event listeners for "Limpiar Fechas" buttons
-        document.querySelectorAll('.clear-dates-button').forEach(button => {
+        document.querySelectorAll('.clear-flatpickr').forEach(button => { // **CHANGE: Targeted clear-flatpickr class, not clear-dates-button**
             button.addEventListener('click', function() {
                 const form = this.closest('form');
-                const dateInput = form.querySelector('input[type="text"]');
+                const dateInput = form.querySelector('.date-input'); // **FIX: Using the new class for consistency**
                 const priceDisplay = form.querySelector('[id^="price-display-"]');
-                const serviceBasePrice = parseFloat(this.closest('.card').querySelector('.service-base-price').innerText.trim());
-                const numPeopleInput = this.closest('.card').querySelector('.num-personas-input');
+                // Get serviceBasePrice from data attribute on the form
+                const serviceBasePrice = parseFloat(form.dataset.pricePerPerson); // **CHANGE**
+                const numPeopleInput = form.querySelector('.num-personas-input'); // **CHANGE**
                 const numberOfPeople = numPeopleInput ? parseInt(numPeopleInput.value) : 1;
 
-                // Get the Flatpickr instance associated with the input
                 const fp = dateInput._flatpickr;
                 if (fp) {
                     fp.clear(); // Clear the selected dates
@@ -325,7 +339,7 @@
                 if (dateInput.classList.contains('date-range-picker')) {
                     priceDisplay.innerText = `Precio estimado: $0.00`;
                 } else if (dateInput.classList.contains('single-date-picker')) {
-                    priceDisplay.innerText = `Precio: $${(serviceBasePrice * numberOfPeople).toFixed(2)}`;
+                    priceDisplay.innerText = `Precio: $${(serviceBasePrice * numberOfPeople).toFixed(2)}`; // **CHANGE**
                 }
             });
         });
@@ -340,6 +354,10 @@
     });
 </script>
 {% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 
 <script src="{% static 'js/carrito.js' %}"></script>
 </body>
