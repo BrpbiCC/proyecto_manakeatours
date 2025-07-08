@@ -99,7 +99,7 @@
             </div>
         </nav>
 
-        {# Carousel and main content similar to hospedaje #}
+        
         <div id="carouselExampleSlidesOnly" class="carousel slide border border-white" data-bs-ride="carousel" style="height: 300px;">
             <div class="carousel-inner h-100">
                 <div class="carousel-item active position-relative h-100">
@@ -115,7 +115,6 @@
         <div class="container my-5">
             <h2 class="text-center mb-4">NUESTRAS MEJORES EXPERIENCIAS GASTRONÓMICAS</h2>
             <div class="row justify-content-center">
-                {# Assuming 'servicio' context variable contains the gastronomy item #}
                 <div class="col-md-8 col-lg-6"> 
                     <div class="card h-100 shadow-lg"> 
                         {% if servicio.imagen %}
@@ -130,7 +129,6 @@
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item"><strong>Precio:</strong> ${{ servicio.precio_base|floatformat:2 }} / persona</li>
                             <li class="list-group-item"><strong>Ubicación:</strong> {{ servicio.ubicacion }}</li>
-                            {# Add any other specific gastronomy details like menu, hours etc. #}
                         </ul>
 
                         <div class="card-body">
@@ -139,7 +137,6 @@
                                 data-service-type="Gastronomia" {# **IMPORTANT: Set service type to Gastronomia** #}
                                 data-price-per-person="{{ servicio.precio_base }}"> {# **IMPORTANT: Use precio_base for per-person price** #}
                                 {% csrf_token %}
-                                {# === REORDERED FIELDS HERE === #}
                                 <div class="mb-3">
                                     <label for="num-personas-{{ servicio.id }}" class="form-label">Número de Personas</label>
                                     <input type="number" class="form-control num-personas-input" id="num-personas-{{ servicio.id }}" name="num_personas" value="1" min="1">
@@ -196,7 +193,7 @@
 </script>
 {% endif %}
 
-<script src="{% static 'js/carrito.js' %}"></script> {# Ensure this path is correct #}
+<script src="{% static 'js/carrito.js' %}"></script> 
 
 </body>
 </html>

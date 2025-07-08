@@ -25,18 +25,16 @@
     </div>
 </div>
 
-{# INICIO DEL DIV QUE ENVUELVE EL CONTENIDO PRINCIPAL #}
 <div id="main-content">
     <section class="bg-3">
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container">
-        {# 1. Redirección condicional para el botón "MANAKEA TOURS" #}
+
         {% if user.is_authenticated %}
             <a class="navbar-brand fw-bold" href="{% url 'inicioregistrado' %}">MANAKEA TOURS</a>
         {% else %}
             <a class="navbar-brand fw-bold" href="{% url 'inicio' %}">MANAKEA TOURS</a>
         {% endif %}
-        {# Fin de la redirección condicional #}
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -53,7 +51,6 @@
                         </span>
                     </li>
                     
-                    {# 3. Marcar en negrita los servicios según la página actual #}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'hospedaje' %}active{% endif %}" href="{% url 'hospedaje' %}">HOSPEDAJE</a>
                     </li>
@@ -63,13 +60,11 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'gastronomia' %}active{% endif %}" href="{% url 'gastronomia' %}">GASTRONOMÍA</a>
                     </li>
-                    {# Fin de marcar en negrita #}
 
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'perfil' %}">PERFIL</a>
                     </li>
                     
-                    {# 2. Mostrar carrito SOLO para rol 'cliente' #}
                     {% if user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %} {# 'cliente' en minúsculas #}
                         <li class="nav-item">
                             <a class="nav-link carrito-trigger" href="#">
@@ -77,7 +72,6 @@
                             </a>
                         </li>
                     {% endif %}
-                    {# Fin de carrito para rol 'cliente' #}
 
                     <li class="nav-item">
                         <a class="nav-link btn btn-outline-danger btn-sm ms-2" href="{% url 'logout' %}">
@@ -85,8 +79,7 @@
                         </a>
                     </li>
                 {% else %}
-                    {# Si no está autenticado, estos enlaces se muestran #}
-                    {# 3. Marcar en negrita los servicios también para usuarios no autenticados #}
+
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'hospedaje' %}active{% endif %}" href="{% url 'hospedaje' %}">HOSPEDAJE</a>
                     </li>
@@ -96,7 +89,6 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'gastronomia' %}active{% endif %}" href="{% url 'gastronomia' %}">GASTRONOMÍA</a>
                     </li>
-                    {# Fin de marcar en negrita #}
 
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'registro' %}active{% endif %}" href="{% url 'registro' %}">
@@ -163,8 +155,8 @@
                 </div>
             {% endif %}
             
-        </div> {# Fin del row #}
-    </div> {# Fin del container #}
+        </div> 
+    </div> 
 </section>
 
         <footer class="bg-dark text-center text-white py-4 mt-5">
@@ -178,12 +170,8 @@
                 <p class="mb-0 small">&copy; 2025 Todos los derechos reservados.</p>
             </div>
         </footer>
-    </section> {# Cierra la sección bg-3 #}
-</div> {# CIERRE DEL DIV main-content #}
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-{# Eliminada la carga duplicada de bootstrap.bundle.min.js #}
-
+    </section> 
+</div> 
 
 {% if not user.is_authenticated %}
 <script>
@@ -196,8 +184,9 @@
 
 
 
-<script src="{% static 'js/carrito.js' %}"></script> {# Tu script para la lógica del carrito #}
+<script src="{% static 'js/carrito.js' %}"></script> 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
