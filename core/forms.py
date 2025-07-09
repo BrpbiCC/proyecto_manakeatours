@@ -111,7 +111,7 @@ class ServicioForm(forms.ModelForm):
         model = Servicio
         fields = [
             'nombre', 'descripcion', 'tipo_servicio', 'precio_base',
-            'ubicacion', 'duracion', 'habitacion', 'imagen', 'num_persona'
+            'ubicacion', 'duracion', 'habitacion', 'imagen'
         ]
         widgets = {
             'descripcion': forms.Textarea(attrs={'rows': 4}),

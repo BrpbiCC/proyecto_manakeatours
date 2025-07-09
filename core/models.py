@@ -163,8 +163,7 @@ class Servicio(models.Model):
     habitacion = models.IntegerField(blank=True, null=True)
     imagen = models.ImageField(upload_to='servicios_imagenes/', blank=True, null=True)
     anfitrion = models.ForeignKey('Usuario', on_delete=models.CASCADE, related_name='servicios_ofrecidos', null=True, blank=True)
-    num_persona = models.IntegerField(default=1, # Default to 1 person if not specified
-    help_text="Número de personas que pueden participar en esta actividad")
+    
 
     def __str__(self):
         return self.nombre
@@ -190,26 +189,13 @@ class DetalleReserva(models.Model):
     reserva = models.ForeignKey(Reserva, on_delete=models.CASCADE)
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE)
     cantidad_dia = models.IntegerField(default=1)
+    num_persona = models.IntegerField(default=1, # Default to 1 person if not specified
+    help_text="Número de personas que pueden participar en esta actividad")
     subtotal = models.DecimalField(max_digits=12, decimal_places=2,  default=0.00)
     
     def __str__(self): 
         return f"Detalle de Reserva {self.reserva.id} - {self.servicio.nombre}"
 
-class Carrito(models.Model):
-    usuario = models.ForeignKey('Usuario', on_delete=models.CASCADE) 
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self): # ¡CORREGIDO!
-        return f"Carrito de {self.usuario.correo}"
-
-class DetalleCarrito(models.Model):
-    DetalleCarrito = models.AutoField(primary_key=True)
-    carrito = models.ForeignKey(Carrito, on_delete=models.CASCADE)
-    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE)
-    cantidad = models.IntegerField(default=1)
-
-    def __str__(self): # ¡CORREGIDO!
-        return f"Item en carrito {self.carrito.id} - {self.servicio.nombre}"
 
 class MetodoPago(models.Model):
     nombre = models.CharField(max_length=100)

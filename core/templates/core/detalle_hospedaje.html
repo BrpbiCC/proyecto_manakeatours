@@ -153,9 +153,10 @@
                         <div class="card-body">
                             <form action="#" method="POST" class="reservation-form" 
                                 data-service-id="{{ servicio.id }}" 
-                                data-service-name="{{ servicio.nombre }}" {# Nuevo: nombre del servicio #}
+                                data-service-name="{{ servicio.nombre }}"
                                 data-service-type="{{ servicio.tipo_servicio.nombre|capfirst }}" 
-                                data-price-base="{{ servicio.precio_base }}"> {# Cambiado a data-price-base #}
+                                data-price-base="{{ servicio.precio_base }}"
+                                data-occupied-dates-url="{% url 'api_hospedaje_fechas_ocupadas' servicio_id=servicio.id %}"> {# AÑADIDA ESTA LÍNEA CLAVE #}
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="fecha-reserva-{{ servicio.id }}" class="form-label visually-hidden">Seleccionar Fechas</label>
@@ -207,18 +208,21 @@
         const flatpickrInstances = {};
 
         // Function to fetch occupied dates and initialize Flatpickr
-        async function fetchAndInitFlatpickr(selector, options, serviceId) {
+        // Acepta la URL de fechas ocupadas como parámetro
+        async function fetchAndInitFlatpickr(selector, options, occupiedDatesUrl) { 
             const dateInput = document.querySelector(selector);
             if (!dateInput) return;
 
             let occupiedDates = [];
             try {
-                // CORRECT WAY TO GET URL IN DJANGO TEMPLATE FOR STATIC JS
-                const url = `{% url 'api_hospedaje_fechas_ocupadas' servicio_id=servicio.id %}`;
-                const response = await fetch(url);
+                // Usa la URL pasada desde el atributo data
+                const response = await fetch(occupiedDatesUrl); 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const data = await response.json();
                 occupiedDates = data.fechas_ocupadas;
-                console.log("Fechas ocupadas para servicio", serviceId, ":", occupiedDates);
+                console.log("Fechas ocupadas para servicio", selector, ":", occupiedDates);
             } catch (error) {
                 console.error('Error al cargar fechas ocupadas:', error);
                 Swal.fire({
@@ -226,19 +230,20 @@
                     title: 'Error de Carga',
                     text: 'No se pudieron cargar las fechas de disponibilidad. Por favor, inténtalo de nuevo.',
                 });
+                return; // Salir si las fechas no se pueden cargar
             }
 
-            // Add occupied dates to Flatpickr options
+            // Añadir fechas ocupadas a las opciones de Flatpickr
             const finalOptions = {
                 ...options,
-                disable: occupiedDates.map(dateStr => dateStr) 
+                disable: occupiedDates // Flatpickr's disable property acepta un array de fechas o rangos de fechas
             };
 
             const instance = flatpickr(dateInput, finalOptions);
-            flatpickrInstances[dateInput.id] = instance; // Store instance by element ID
+            flatpickrInstances[dateInput.id] = instance; // Almacenar instancia por ID de elemento
         }
 
-        // Options for date range picker (Hospedajes)
+        // Opciones para el selector de rango de fechas (Hospedajes)
         const rangePickerOptions = {
             mode: "range",
             minDate: "today",
@@ -249,21 +254,27 @@
                 const priceDisplay = cardBody.querySelector('[id^="price-display-"]');
                 const form = instance.element.closest('.reservation-form');
                 const servicePriceBase = parseFloat(form.dataset.priceBase);
-                const numberOfPeople = 1; // Fixed at 1 for Hospedaje
+                const numberOfPeople = 1; // Fijo en 1 para Hospedaje
 
                 if (selectedDates.length === 2) {
                     const startDate = selectedDates[0];
                     const endDate = selectedDates[1];
-                    const diffTime = endDate.getTime() - startDate.getTime();
-                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-                    // Check for overlap with disabled dates
-                    const occupiedDates = instance.config.disable;
+                    // Convierte las fechas deshabilitadas a un formato comparable (YYYY-MM-DD)
+                    const occupiedDatesStrings = instance.config.disable.map(d => {
+                        if (d instanceof Date) return d.toISOString().split('T')[0];
+                        return d; // Asume que ya es una cadena en el formato correcto
+                    });
+
                     let isOverlap = false;
                     let checkDate = new Date(startDate);
-                    while (checkDate < endDate) { // Iterate up to, but not including, the end date
+                    // Iterar sobre cada día en el rango seleccionado (excluyendo la fecha de fin para las noches)
+                    // para verificar superposición con fechas deshabilitadas.
+                    // Esto es una capa extra de seguridad, Flatpickr debería manejarlo automáticamente en modo "range",
+                    // pero una comprobación explícita es útil.
+                    while (checkDate < endDate) { 
                         const dateString = checkDate.toISOString().split('T')[0];
-                        if (occupiedDates.includes(dateString)) {
+                        if (occupiedDatesStrings.includes(dateString)) {
                             isOverlap = true;
                             break;
                         }
@@ -276,10 +287,13 @@
                             title: 'Fechas No Disponibles',
                             text: 'Algunas de las fechas seleccionadas ya están reservadas. Por favor, elige otras.',
                         });
-                        instance.clear(); // Clear the invalid selection
+                        instance.clear(); // Limpiar la selección inválida
                         priceDisplay.innerText = `Precio estimado: $0.00`;
                         return; 
                     }
+
+                    const diffTime = endDate.getTime() - startDate.getTime();
+                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
                     if (diffDays <= 0) {
                         Swal.fire({
@@ -300,26 +314,27 @@
             }
         };
 
-        // Initialize Flatpickr for Hospedaje
+        // Inicializar Flatpickr para Hospedaje
         document.querySelectorAll('.reservation-form').forEach(form => {
             const serviceType = form.dataset.serviceType;
             const serviceId = form.dataset.serviceId;
+            // Obtener la URL de fechas ocupadas desde el atributo data
+            const occupiedDatesUrl = form.dataset.occupiedDatesUrl; 
             const dateInput = form.querySelector('input[type="text"][id^="fecha-reserva-"]');
 
-            if (dateInput && serviceType.toLowerCase() === 'hospedaje') {
-                fetchAndInitFlatpickr(`#fecha-reserva-${serviceId}`, rangePickerOptions, serviceId);
+            if (dateInput && serviceType.toLowerCase() === 'hospedaje' && occupiedDatesUrl) { 
+                // Pasar la URL correcta a la función de inicialización
+                fetchAndInitFlatpickr(`#fecha-reserva-${serviceId}`, rangePickerOptions, occupiedDatesUrl);
             } 
-            // NOTE: Flatpickr initialization for Actividad/Gastronomia should be in their respective detail pages
-            // if they have different options or API calls.
         });
 
-        // Add event listeners for clear buttons
+        // Añadir listeners de eventos para los botones de limpiar
         document.querySelectorAll('.clear-flatpickr').forEach(button => {
             button.addEventListener('click', function() {
                 const targetId = this.dataset.targetFlatpickr;
                 if (flatpickrInstances[targetId]) {
-                    flatpickrInstances[targetId].clear(); // Clear the Flatpickr instance
-                    // Reset the price display after clearing
+                    flatpickrInstances[targetId].clear(); // Limpiar la instancia de Flatpickr
+                    // Restablecer la visualización del precio después de limpiar
                     const form = this.closest('.reservation-form');
                     const priceDisplay = form.querySelector('[id^="price-display-"]');
                     priceDisplay.innerText = `Precio estimado: $0.00`;
@@ -332,12 +347,12 @@
             button.addEventListener('click', function() {
                 const form = this.closest('.reservation-form');
                 const serviceId = form.dataset.serviceId;
-                const serviceName = form.dataset.serviceName; // Get service name from data attribute
+                const serviceName = form.dataset.serviceName; 
                 const serviceType = form.dataset.serviceType;
-                const priceBase = parseFloat(form.dataset.priceBase); // Get base price from data attribute
+                const priceBase = parseFloat(form.dataset.priceBase); 
 
                 const dateInput = form.querySelector('input[type="text"][id^="fecha-reserva-"]');
-                const flatpickrInstance = flatpickrInstances[dateInput.id]; // Get the Flatpickr instance
+                const flatpickrInstance = flatpickrInstances[dateInput.id]; 
 
                 if (!flatpickrInstance || flatpickrInstance.selectedDates.length === 0) {
                     Swal.fire({
@@ -351,7 +366,7 @@
                 let fechaInicio = null;
                 let fechaFin = null;
                 let cantidadDias = 0;
-                const cantidadPersonas = 1; // Fixed at 1 for Hospedaje
+                const cantidadPersonas = 1; // Fijo en 1 para Hospedaje
 
                 if (serviceType.toLowerCase() === 'hospedaje') {
                     const selectedDates = flatpickrInstance.selectedDates; 
@@ -363,6 +378,33 @@
                         const end = selectedDates[1];
                         cantidadDias = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
                         
+                        // Una comprobación de superposición adicional aquí si es necesario,
+                        // aunque Flatpickr ya debería haberlo evitado en el onChange.
+                        const occupiedDatesStrings = flatpickrInstance.config.disable.map(d => {
+                            if (d instanceof Date) return d.toISOString().split('T')[0];
+                            return d;
+                        });
+                        let hasFinalOverlap = false;
+                        let finalCheckDate = new Date(start);
+                        while (finalCheckDate < end) {
+                            const dateString = finalCheckDate.toISOString().split('T')[0];
+                            if (occupiedDatesStrings.includes(dateString)) {
+                                hasFinalOverlap = true;
+                                break;
+                            }
+                            finalCheckDate.setDate(finalCheckDate.getDate() + 1);
+                        }
+                        
+                        if (hasFinalOverlap) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error de Fechas',
+                                text: 'La selección actual de fechas se superpone con una reserva existente. Por favor, elige otras fechas.',
+                            });
+                            flatpickrInstance.clear(); // Limpiar selección si hay superposición
+                            return;
+                        }
+
                         if (cantidadDias <= 0) {
                             Swal.fire({
                                 icon: 'error',
@@ -380,17 +422,13 @@
                         return;
                     }
                 } 
-                // For other service types (Actividad/Gastronomia), they would have their own detail pages
-                // with their own logic for date and people selection, then call window.addToCartFromDetail.
-                // This script is specific to detalle_hospedaje.html, so we only handle hospedaje logic here.
                 
-                // Ensure window.addToCartFromDetail is available before calling
                 if (typeof window.addToCartFromDetail === 'function') {
                     window.addToCartFromDetail({
                         servicio_id: serviceId,
-                        nombre_servicio: serviceName, // Pass name
+                        nombre_servicio: serviceName, 
                         tipo_servicio: serviceType,
-                        precio_base: priceBase, // Pass base price
+                        precio_base: priceBase, 
                         fecha_inicio: fechaInicio,
                         fecha_fin: fechaFin,
                         cantidad_dias: cantidadDias, 
