@@ -5,7 +5,7 @@ urlpatterns = [
     path('', views.inicio, name='inicio'),
     path('registro/', views.registro, name='registro'),
     path('login/', views.login, name='login'),
-    path('logout/', views.logout_view, name='logout'), 
+    path('logout/', views.logout_view, name='logout'),
     path('hospedaje/', views.hospedaje, name='hospedaje'),
     path('actividad/', views.actividad, name='actividad'),
     path('gastronomia/', views.gastronomia, name='gastronomia'),
@@ -15,6 +15,7 @@ urlpatterns = [
     path('listar_reservas_anfitrion/', views.listar_reservas_anfitrion, name='listar_reservas_anfitrion'),
     path('listar_servicios_admimistrador/', views.listar_servicios_administrador, name='listar_servicios_administrador'),
     path('detalle_hospedaje/<int:servicio_id>/', views.detalle_hospedaje, name='detalle_hospedaje'),
+    path('api/hospedaje/<int:servicio_id>/fechas_ocupadas/', views.get_fechas_ocupadas_hospedaje, name='api_hospedaje_fechas_ocupadas'), # ¡NUEVA LÍNEA!
     path('detalle_actividad/<int:servicio_id>/', views.detalle_actividad, name='detalle_actividad'),
     path('detalle_gastronomia/<int:servicio_id>/', views.detalle_gastronomia, name='detalle_gastronomia'),
 ]

@@ -1,8 +1,11 @@
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
-from django.contrib.auth.decorators import login_required, user_passes_test # ¡Esta importación es crucial!
-from django.db.models import Q 
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Q
+from django.http import JsonResponse # ¡IMPORTAR ESTO!
+from datetime import date, timedelta # ¡IMPORTAR ESTO!
+
 from .forms import RegistroClienteForm, LoginForm, PerfilUsuarioForm, ServicioForm
 from .models import Usuario, TipoUsuario, Reserva, DetalleReserva, Servicio, TipoServicio, EstadoReserva
 
@@ -67,7 +70,7 @@ def inicioregistrado(request):
 def perfil(request):
     """Vista del perfil de usuario, incluyendo "Mis Reservas" para clientes."""
     usuario_actual = request.user
-    form_submitted_with_errors = False 
+    form_submitted_with_errors = False
 
     if request.method == 'POST':
         form = PerfilUsuarioForm(request.POST, instance=usuario_actual)
@@ -77,17 +80,17 @@ def perfil(request):
             return redirect('perfil')
         else:
             messages.error(request, 'Hubo un error al actualizar tus datos. Por favor, revisa el formulario.')
-            form_submitted_with_errors = True 
+            form_submitted_with_errors = True
     else:
         form = PerfilUsuarioForm(instance=usuario_actual)
 
     reservas_data = []
-    if is_cliente(usuario_actual): 
+    if is_cliente(usuario_actual):
         reservas_usuario = Reserva.objects.filter(usuario=usuario_actual).order_by('-fecha_reserva')
-        
+
         for reserva in reservas_usuario:
             servicios_reserva = DetalleReserva.objects.filter(reserva=reserva).select_related('servicio__tipo_servicio')
-            
+
             nombres_servicios_list = []
             tipos_servicios_list = []
             for dr in servicios_reserva:
@@ -110,8 +113,8 @@ def perfil(request):
     context = {
         'form': form,
         'reservas': reservas_data,
-        'form_submitted': form_submitted_with_errors, 
-        'user': usuario_actual, 
+        'form_submitted': form_submitted_with_errors,
+        'user': usuario_actual,
     }
     return render(request, 'core/perfil.html', context)
 
@@ -121,10 +124,10 @@ def perfil(request):
 @user_passes_test(es_administrador_plataforma, login_url='/acceso_denegado/')
 def listar_servicios_administrador(request):
     servicios = Servicio.objects.all().order_by('nombre')
-    
+
     form = ServicioForm()
     servicio_a_editar = None
-    
+
     # Manejar POST para AGREGAR SERVICIO
     if request.method == 'POST' and 'action' in request.POST and request.POST['action'] == 'agregar':
         form = ServicioForm(request.POST, request.FILES)
@@ -132,7 +135,7 @@ def listar_servicios_administrador(request):
             form.save()
             # Puedes añadir mensajes de éxito aquí
             return redirect('listar_servicios_administrador')
-    
+
     # Manejar GET para entrar en modo MODIFICAR
     elif request.method == 'GET' and 'modificar_id' in request.GET:
         try:
@@ -150,7 +153,7 @@ def listar_servicios_administrador(request):
         if form.is_valid():
             form.save()
             return redirect('listar_servicios_administrador')
-    
+
     # Manejar POST para ELIMINAR SERVICIO
     elif request.method == 'POST' and 'eliminar_id' in request.POST:
         servicio_id = request.POST['eliminar_id']
@@ -182,18 +185,18 @@ def listar_reservas_anfitrion(request):
     # --- Lógica de Filtrado (GET request) ---
     search_tipo_servicio = request.GET.get('tipo_servicio', '').strip()
     search_cliente_correo = request.GET.get('cliente_correo', '').strip()
-    search_estado = request.GET.get('estado', '').strip() 
+    search_estado = request.GET.get('estado', '').strip()
 
     if search_tipo_servicio:
         reservas_queryset = reservas_queryset.filter(
             detallereserva__servicio__tipo_servicio__nombre__icontains=search_tipo_servicio
         ).distinct()
-    
+
     if search_cliente_correo:
         reservas_queryset = reservas_queryset.filter(
             usuario__correo__icontains=search_cliente_correo
         ).distinct()
-    
+
     if search_estado:
         reservas_queryset = reservas_queryset.filter(
             estado__estado__icontains=search_estado
@@ -206,7 +209,7 @@ def listar_reservas_anfitrion(request):
         action = request.POST.get('action') # 'aceptar' o 'rechazar'
 
         reserva = get_object_or_404(Reserva, id=reserva_id)
-        
+
         # Verificación de seguridad: Asegurarse de que la reserva pertenece
         # a uno de los servicios del anfitrión logueado.
         if not DetalleReserva.objects.filter(reserva=reserva, servicio__anfitrion=request.user).exists():
@@ -222,7 +225,7 @@ def listar_reservas_anfitrion(request):
                 reserva.estado = estado_aceptada
                 reserva.save()
                 messages.success(request, f"¡Reserva #{reserva.id} aceptada con éxito!")
-            elif action == 'rechazar': 
+            elif action == 'rechazar':
                 estado_rechazada, created = EstadoReserva.objects.get_or_create(estado='Rechazada')
                 reserva.estado = estado_rechazada
                 reserva.save()
@@ -231,7 +234,7 @@ def listar_reservas_anfitrion(request):
                 messages.error(request, "Acción no válida.")
         except Exception as e:
             messages.error(request, f"Error al procesar la reserva: {e}")
-        
+
         # Después de una actualización, redirigir manteniendo los filtros actuales
         query_params = request.GET.urlencode()
         redirect_url = f"{request.path}?{query_params}" if query_params else request.path
@@ -239,13 +242,13 @@ def listar_reservas_anfitrion(request):
 
     # Preparar los datos de las reservas para mostrarlos en la tabla
     reservas_data = []
-    for reserva in reservas_queryset: 
+    for reserva in reservas_queryset:
         servicios_reserva = DetalleReserva.objects.filter(reserva=reserva).select_related('servicio')
-        
+
         nombres_servicios_list = []
         for dr in servicios_reserva:
             nombres_servicios_list.append(dr.servicio.nombre)
-        
+
         nombres_servicios = ", ".join(sorted(list(set(nombres_servicios_list))))
 
         reservas_data.append({
@@ -268,8 +271,8 @@ def listar_reservas_anfitrion(request):
     context = {
         'reservas': reservas_data,
         'estados_disponibles': estados_disponibles,
-        'tipos_servicio_disponibles': tipos_servicio_disponibles, 
-        'user': request.user, 
+        'tipos_servicio_disponibles': tipos_servicio_disponibles,
+        'user': request.user,
         'search_tipo_servicio': search_tipo_servicio,
         'search_cliente_correo': search_cliente_correo,
         'search_estado': search_estado,
@@ -323,23 +326,60 @@ def gastronomia(request):
 def carrito(request):
     return render(request, 'core/carrito.html')
 
-def detalle_hospedaje(request, servicio_id): 
-    servicio = get_object_or_404(Servicio, pk=servicio_id, tipo_servicio__nombre='hospedaje') 
+def detalle_hospedaje(request, servicio_id):
+    servicio = get_object_or_404(Servicio, pk=servicio_id, tipo_servicio__nombre='hospedaje')
     context = {
         'servicio': servicio,
     }
     return render(request, 'core/detalle_hospedaje.html', context)
 
-def detalle_actividad(request, servicio_id): 
-    servicio = get_object_or_404(Servicio, pk=servicio_id, tipo_servicio__nombre='actividad') 
+def detalle_actividad(request, servicio_id):
+    servicio = get_object_or_404(Servicio, pk=servicio_id, tipo_servicio__nombre='actividad')
     context = {
         'servicio': servicio,
     }
     return render(request, 'core/detalle_actividad.html', context)
 
-def detalle_gastronomia(request, servicio_id): 
-    servicio = get_object_or_404(Servicio, pk=servicio_id, tipo_servicio__nombre='gastronomia') 
+def detalle_gastronomia(request, servicio_id):
+    servicio = get_object_or_404(Servicio, pk=servicio_id, tipo_servicio__nombre='gastronomia')
     context = {
         'servicio': servicio,
     }
     return render(request, 'core/detalle_gastronomia.html', context)
+
+# --- Nueva Vista para obtener fechas ocupadas ---
+def get_fechas_ocupadas_hospedaje(request, servicio_id):
+    # Asegúrate de que el servicio es un hospedaje
+    servicio = get_object_or_404(Servicio, pk=servicio_id, tipo_servicio__nombre='hospedaje')
+
+    # Obtener el estado 'Aceptada' para filtrar solo reservas confirmadas
+    try:
+        estado_aceptada = EstadoReserva.objects.get(estado='Aceptada')
+    except EstadoReserva.DoesNotExist:
+        # Si no existe el estado 'Aceptada', no hay reservas confirmadas que considerar
+        return JsonResponse({'fechas_ocupadas': []})
+
+    # Buscar todas las reservas aceptadas para este hospedaje
+    # Que se solapen con fechas futuras o actuales
+    reservas_ocupadas = DetalleReserva.objects.filter(
+        servicio=servicio,
+        reserva__estado=estado_aceptada,
+        reserva__fecha_fin__gte=date.today() # Solo reservas que aún no han terminado
+    ).select_related('reserva').order_by('reserva__fecha_inicio')
+
+    fechas_ocupadas_list = []
+    for dr in reservas_ocupadas:
+        fecha_inicio = dr.reserva.fecha_inicio
+        fecha_fin = dr.reserva.fecha_fin
+
+        # Generar todas las fechas entre fecha_inicio y fecha_fin (excluyendo fecha_fin)
+        # Esto es crucial porque fecha_fin es la fecha de SALIDA, lo que significa que la noche anterior es la última noche ocupada.
+        current_date = fecha_inicio
+        while current_date < fecha_fin:
+            fechas_ocupadas_list.append(current_date.strftime('%Y-%m-%d'))
+            current_date += timedelta(days=1)
+
+    # Eliminar duplicados y ordenar para asegurar un JSON limpio
+    fechas_ocupadas_unicas = sorted(list(set(fechas_ocupadas_list)))
+
+    return JsonResponse({'fechas_ocupadas': fechas_ocupadas_unicas})

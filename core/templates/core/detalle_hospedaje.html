@@ -25,16 +25,17 @@
     </div>
 </div>
 
-<div id="main-content"> 
+<div id="main-content"> {# Aquí está el div principal que el JS moverá #}
     <section class="bg-2">
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container">
-
+        {# 1. Redirección condicional para el botón "MANAKEA TOURS" #}
         {% if user.is_authenticated %}
             <a class="navbar-brand fw-bold" href="{% url 'inicioregistrado' %}">MANAKEA TOURS</a>
         {% else %}
             <a class="navbar-brand fw-bold" href="{% url 'inicio' %}">MANAKEA TOURS</a>
         {% endif %}
+        {# Fin de la redirección condicional #}
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -51,6 +52,7 @@
                         </span>
                     </li>
 
+                    {# 3. Marcar en negrita los servicios según la página actual #}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'hospedaje' %}active{% endif %}" href="{% url 'hospedaje' %}">HOSPEDAJE</a>
                     </li>
@@ -60,11 +62,13 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'gastronomia' %}active{% endif %}" href="{% url 'gastronomia' %}">GASTRONOMÍA</a>
                     </li>
+                    {# Fin de marcar en negrita #}
 
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'perfil' %}">PERFIL</a>
                     </li>
 
+                    {# 2. Mostrar carrito SOLO para rol 'cliente' #}
                     {% if user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %} {# 'cliente' en minúsculas #}
                         <li class="nav-item">
                             <a class="nav-link carrito-trigger" href="#">
@@ -72,6 +76,7 @@
                             </a>
                         </li>
                     {% endif %}
+                    {# Fin de carrito para rol 'cliente' #}
 
                     <li class="nav-item">
                         <a class="nav-link btn btn-outline-danger btn-sm ms-2" href="{% url 'logout' %}">
@@ -79,7 +84,8 @@
                         </a>
                     </li>
                 {% else %}
-
+                    {# Si no está autenticado, estos enlaces se muestran #}
+                    {# 3. Marcar en negrita los servicios también para usuarios no autenticados #}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'hospedaje' %}active{% endif %}" href="{% url 'hospedaje' %}">HOSPEDAJE</a>
                     </li>
@@ -89,6 +95,7 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'gastronomia' %}active{% endif %}" href="{% url 'gastronomia' %}">GASTRONOMÍA</a>
                     </li>
+                    {# Fin de marcar en negrita #}
 
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'registro' %}active{% endif %}" href="{% url 'registro' %}">
@@ -144,17 +151,17 @@
                         </ul>
 
                         <div class="card-body">
-                            {# The form now points to a POST URL for adding to cart #}
                             <form action="#" method="POST" class="reservation-form" 
                                 data-service-id="{{ servicio.id }}" 
+                                data-service-name="{{ servicio.nombre }}" {# Nuevo: nombre del servicio #}
                                 data-service-type="{{ servicio.tipo_servicio.nombre|capfirst }}" 
-                                data-price-per-person="{{ servicio.precio_base }}"> {# Changed to data-price-per-person for consistency #}
+                                data-price-base="{{ servicio.precio_base }}"> {# Cambiado a data-price-base #}
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="fecha-reserva-{{ servicio.id }}" class="form-label visually-hidden">Seleccionar Fechas</label>
                                     <input type="text" class="form-control date-input date-range-picker" id="fecha-reserva-{{ servicio.id }}" name="fechas_reserva" placeholder="Selecciona fecha(s)">
                                 </div> 
-                                {# REMOVED: Input for number of adults #}
+                                {# Campo "Número de Personas" ELIMINADO para hospedajes #}
                                 
                                 <div class="form-text mt-2 text-muted" id="price-display-{{ servicio.id }}">Precio estimado: $0.00</div>
                                 <div class="d-flex justify-content-center mb-3">
@@ -190,17 +197,45 @@
     </section> 
 </div> 
 
-<script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script type="text/javascript">
     document.addEventListener('DOMContentLoaded', function() {
-        // Map to store Flatpickr instances
         const flatpickrInstances = {};
 
-        // Function to initialize Flatpickr and store instances
-        function initFlatpickr(selector, options) {
-            document.querySelectorAll(selector).forEach(function(element) {
-                const instance = flatpickr(element, options);
-                flatpickrInstances[element.id] = instance; // Store instance by element ID
-            });
+        // Function to fetch occupied dates and initialize Flatpickr
+        async function fetchAndInitFlatpickr(selector, options, serviceId) {
+            const dateInput = document.querySelector(selector);
+            if (!dateInput) return;
+
+            let occupiedDates = [];
+            try {
+                // CORRECT WAY TO GET URL IN DJANGO TEMPLATE FOR STATIC JS
+                const url = `{% url 'api_hospedaje_fechas_ocupadas' servicio_id=servicio.id %}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                occupiedDates = data.fechas_ocupadas;
+                console.log("Fechas ocupadas para servicio", serviceId, ":", occupiedDates);
+            } catch (error) {
+                console.error('Error al cargar fechas ocupadas:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Carga',
+                    text: 'No se pudieron cargar las fechas de disponibilidad. Por favor, inténtalo de nuevo.',
+                });
+            }
+
+            // Add occupied dates to Flatpickr options
+            const finalOptions = {
+                ...options,
+                disable: occupiedDates.map(dateStr => dateStr) 
+            };
+
+            const instance = flatpickr(dateInput, finalOptions);
+            flatpickrInstances[dateInput.id] = instance; // Store instance by element ID
         }
 
         // Options for date range picker (Hospedajes)
@@ -213,76 +248,69 @@
                 const cardBody = instance.element.closest('.card-body');
                 const priceDisplay = cardBody.querySelector('[id^="price-display-"]');
                 const form = instance.element.closest('.reservation-form');
-                const serviceType = form.dataset.serviceType; 
-                // In Hospedaje, if you don't want "Número de Adultos" to affect price, always treat it as 1.
+                const servicePriceBase = parseFloat(form.dataset.priceBase);
                 const numberOfPeople = 1; // Fixed at 1 for Hospedaje
 
-                // Ensure serviceType is treated correctly
-                if (serviceType.toLowerCase() === 'hospedaje') {
-                    let servicePricePerNight = parseFloat(form.dataset.pricePerPerson); // Get from dataset
-                    
-                    if (selectedDates.length === 2) {
-                        const startDate = selectedDates[0];
-                        const endDate = selectedDates[1];
-                        // Calculate the number of nights
-                        const diffTime = endDate.getTime() - startDate.getTime(); // Get difference in milliseconds
-                        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)); // Convert to days and round
+                if (selectedDates.length === 2) {
+                    const startDate = selectedDates[0];
+                    const endDate = selectedDates[1];
+                    const diffTime = endDate.getTime() - startDate.getTime();
+                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-                        const estimatedPrice = (diffDays * servicePricePerNight * numberOfPeople).toFixed(2);
-                        priceDisplay.innerText = `Noches: ${diffDays} (${startDate.toLocaleDateString('es-CL')} al ${endDate.toLocaleDateString('es-CL')}) - Precio estimado: $${estimatedPrice}`;
-                    } else if (selectedDates.length === 1) {
-                        // If only one date is selected, it represents 1 night for a reservation starting on that day.
-                        const estimatedPrice = (servicePricePerNight * numberOfPeople).toFixed(2);
-                        priceDisplay.innerText = `Noches: 1 (${selectedDates[0].toLocaleDateString('es-CL')}) - Precio estimado: $${estimatedPrice}`;
-                    } else {
-                        priceDisplay.innerText = `Precio estimado: $0.00`;
+                    // Check for overlap with disabled dates
+                    const occupiedDates = instance.config.disable;
+                    let isOverlap = false;
+                    let checkDate = new Date(startDate);
+                    while (checkDate < endDate) { // Iterate up to, but not including, the end date
+                        const dateString = checkDate.toISOString().split('T')[0];
+                        if (occupiedDates.includes(dateString)) {
+                            isOverlap = true;
+                            break;
+                        }
+                        checkDate.setDate(checkDate.getDate() + 1);
                     }
-                }
-            }
-        };
 
-        // Options for single date picker (Actividades y Gastronomía)
-        const singlePickerOptions = {
-            mode: "single",
-            minDate: "today",
-            dateFormat: "Y-m-d",
-            locale: "es",
-            onChange: function(selectedDates, dateStr, instance) {
-                const cardBody = instance.element.closest('.card-body');
-                const priceDisplay = cardBody.querySelector('[id^="price-display-"]');
-                const form = instance.element.closest('.reservation-form');
-                const servicePrice = parseFloat(form.dataset.pricePerPerson); // Get from dataset
-                // For Actividades/Gastronomía, assuming you still want a "Número de Personas" input
-                // If you want to remove this too for activities, then also remove the num_personas_input from those templates.
-                const numPeopleInput = form.querySelector('.num-personas-input'); 
-                const numberOfPeople = numPeopleInput ? parseInt(numPeopleInput.value) : 1;
+                    if (isOverlap) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Fechas No Disponibles',
+                            text: 'Algunas de las fechas seleccionadas ya están reservadas. Por favor, elige otras.',
+                        });
+                        instance.clear(); // Clear the invalid selection
+                        priceDisplay.innerText = `Precio estimado: $0.00`;
+                        return; 
+                    }
 
+                    if (diffDays <= 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Fechas Inválidas',
+                            text: 'La fecha de salida debe ser posterior a la fecha de entrada.',
+                        });
+                        instance.clear();
+                        priceDisplay.innerText = `Precio estimado: $0.00`;
+                        return;
+                    }
 
-                if (selectedDates.length === 1) {
-                    const estimatedPrice = (servicePrice * numberOfPeople).toFixed(2);
-                    priceDisplay.innerText = `Fecha seleccionada: ${selectedDates[0].toLocaleDateString('es-CL')} - Precio: $${estimatedPrice}`;
+                    const estimatedPrice = (diffDays * servicePriceBase * numberOfPeople).toFixed(2);
+                    priceDisplay.innerText = `Noches: ${diffDays} (${startDate.toLocaleDateString('es-CL')} al ${endDate.toLocaleDateString('es-CL')}) - Precio estimado: $${estimatedPrice}`;
                 } else {
-                    const estimatedPrice = (servicePrice * numberOfPeople).toFixed(2);
-                    priceDisplay.innerText = `Precio: $${estimatedPrice}`; // Reset to base price if date cleared
+                    priceDisplay.innerText = `Precio estimado: $0.00`;
                 }
             }
         };
 
-        // Initialize Flatpickr instances
-        // Initialize based on data-service-type to apply correct options
+        // Initialize Flatpickr for Hospedaje
         document.querySelectorAll('.reservation-form').forEach(form => {
             const serviceType = form.dataset.serviceType;
+            const serviceId = form.dataset.serviceId;
             const dateInput = form.querySelector('input[type="text"][id^="fecha-reserva-"]');
 
-            if (dateInput) {
-                if (serviceType.toLowerCase() === 'hospedaje') { // Use toLowerCase for robustness
-                    const instance = flatpickr(dateInput, rangePickerOptions);
-                    flatpickrInstances[dateInput.id] = instance;
-                } else if (serviceType.toLowerCase() === 'actividad' || serviceType.toLowerCase() === 'gastronomía') { // Applied to Actividad and Gastronomía
-                    const instance = flatpickr(dateInput, singlePickerOptions);
-                    flatpickrInstances[dateInput.id] = instance;
-                }
-            }
+            if (dateInput && serviceType.toLowerCase() === 'hospedaje') {
+                fetchAndInitFlatpickr(`#fecha-reserva-${serviceId}`, rangePickerOptions, serviceId);
+            } 
+            // NOTE: Flatpickr initialization for Actividad/Gastronomia should be in their respective detail pages
+            // if they have different options or API calls.
         });
 
         // Add event listeners for clear buttons
@@ -294,56 +322,104 @@
                     // Reset the price display after clearing
                     const form = this.closest('.reservation-form');
                     const priceDisplay = form.querySelector('[id^="price-display-"]');
-                    const serviceType = form.dataset.serviceType;
-                    const servicePrice = parseFloat(form.dataset.pricePerPerson);
-                    const numPeopleInput = form.querySelector('.num-personas-input');
-                    const numberOfPeople = numPeopleInput ? parseInt(numPeopleInput.value) : 1;
-
-
-                    if (serviceType.toLowerCase() === 'hospedaje') {
-                       priceDisplay.innerText = `Precio estimado: $0.00`;
-                    } else if (serviceType.toLowerCase() === 'actividad' || serviceType.toLowerCase() === 'gastronomía') {
-                       priceDisplay.innerText = `Precio: $${(servicePrice * numberOfPeople).toFixed(2)}`;
-                    }
+                    priceDisplay.innerText = `Precio estimado: $0.00`;
                 }
             });
         });
 
-        // The following block for 'num-personas-input' event listener is only relevant
-        // if you have `num-personas-input` fields on other pages (like actividades or gastronomía)
-        // If you remove all `num-personas-input` fields across all templates, this block can be removed.
-        document.querySelectorAll('.num-personas-input').forEach(input => {
-            input.addEventListener('change', function() {
+        // --- Adición para manejar el botón "Añadir al carrito" ---
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+            button.addEventListener('click', function() {
                 const form = this.closest('.reservation-form');
-                const dateInput = form.querySelector('.date-input');
-                const flatpickrInstance = dateInput._flatpickr;
-                if (flatpickrInstance && flatpickrInstance.selectedDates.length > 0) {
-                    // Trigger the onChange handler of flatpickr to re-calculate the price
-                    flatpickrInstance.config.onChange(flatpickrInstance.selectedDates, flatpickrInstance.input.value, flatpickrInstance);
+                const serviceId = form.dataset.serviceId;
+                const serviceName = form.dataset.serviceName; // Get service name from data attribute
+                const serviceType = form.dataset.serviceType;
+                const priceBase = parseFloat(form.dataset.priceBase); // Get base price from data attribute
+
+                const dateInput = form.querySelector('input[type="text"][id^="fecha-reserva-"]');
+                const flatpickrInstance = flatpickrInstances[dateInput.id]; // Get the Flatpickr instance
+
+                if (!flatpickrInstance || flatpickrInstance.selectedDates.length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Fechas Requeridas',
+                        text: 'Por favor, selecciona las fechas para tu reserva.',
+                    });
+                    return;
+                }
+
+                let fechaInicio = null;
+                let fechaFin = null;
+                let cantidadDias = 0;
+                const cantidadPersonas = 1; // Fixed at 1 for Hospedaje
+
+                if (serviceType.toLowerCase() === 'hospedaje') {
+                    const selectedDates = flatpickrInstance.selectedDates; 
+                    if (selectedDates.length === 2) {
+                        fechaInicio = flatpickrInstance.formatDate(selectedDates[0], "Y-m-d");
+                        fechaFin = flatpickrInstance.formatDate(selectedDates[1], "Y-m-d");
+                        
+                        const start = selectedDates[0];
+                        const end = selectedDates[1];
+                        cantidadDias = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                        
+                        if (cantidadDias <= 0) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Fechas Inválidas',
+                                text: 'La fecha de salida debe ser posterior a la fecha de entrada.',
+                            });
+                            return;
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Fechas Incompletas',
+                            text: 'Para hospedajes, debes seleccionar un rango de fechas (fecha de entrada y fecha de salida).',
+                        });
+                        return;
+                    }
+                } 
+                // For other service types (Actividad/Gastronomia), they would have their own detail pages
+                // with their own logic for date and people selection, then call window.addToCartFromDetail.
+                // This script is specific to detalle_hospedaje.html, so we only handle hospedaje logic here.
+                
+                // Ensure window.addToCartFromDetail is available before calling
+                if (typeof window.addToCartFromDetail === 'function') {
+                    window.addToCartFromDetail({
+                        servicio_id: serviceId,
+                        nombre_servicio: serviceName, // Pass name
+                        tipo_servicio: serviceType,
+                        precio_base: priceBase, // Pass base price
+                        fecha_inicio: fechaInicio,
+                        fecha_fin: fechaFin,
+                        cantidad_dias: cantidadDias, 
+                        cantidad_personas: cantidadPersonas 
+                    });
+                } else {
+                    console.warn("Function 'addToCartFromDetail' not found. Ensure carrito.js is loaded and the function is exposed globally.");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error Interno',
+                        text: 'No se pudo añadir al carrito. La funcionalidad principal del carrito no está disponible. Contacta al soporte.',
+                    });
                 }
             });
         });
-
     });
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
-
 {% if not user.is_authenticated %}
-
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
         const popoverList = [...popoverTriggerList].map(el => new bootstrap.Popover(el));
     });
 </script>
-
 {% endif %}
 
+{# Ensure carrito.js is loaded AFTER your page-specific script #}
 <script src="{% static 'js/carrito.js' %}"></script>
-
 
 </body>
 </html>
