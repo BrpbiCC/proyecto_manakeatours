@@ -129,115 +129,154 @@
 </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
+ <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fullCartItemsDiv = document.getElementById('full-cart-items');
+        const subtotalCompletoSpan = document.getElementById('subtotal-completo');
+        const impuestosCompletoSpan = document.getElementById('impuestos-completo');
+        const totalFinalCompletoSpan = document.getElementById('total-final-completo');
+        const procederPagoBtn = document.getElementById('proceder-pago-btn');
 
-      document.addEventListener('DOMContentLoaded', function() {
-          const fullCartItemsDiv = document.getElementById('full-cart-items');
-          const subtotalCompletoSpan = document.getElementById('subtotal-completo');
-          const impuestosCompletoSpan = document.getElementById('impuestos-completo');
-          const totalFinalCompletoSpan = document.getElementById('total-final-completo');
-          const procederPagoBtn = document.getElementById('proceder-pago-btn');
+        // Función para obtener el CSRF token de las cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
 
-          function loadAndRenderFullCart() {
-              const cartItems = JSON.parse(sessionStorage.getItem('cartItems')) || [];
-              fullCartItemsDiv.innerHTML = ''; // Limpiar items actuales
-              let subtotalAcumulado = 0;
 
-              if (cartItems.length === 0) {
-                  fullCartItemsDiv.innerHTML = '<p class="text-center text-muted">Tu carrito está vacío. <a href="{% url "inicio" %}">Comienza a explorar nuestros servicios</a>.</p>';
-                  procederPagoBtn.disabled = true; // Deshabilitar el botón de pago si el carrito está vacío
-              } else {
-                  cartItems.forEach((item, index) => {
-                      const itemDiv = document.createElement('div');
-                      itemDiv.classList.add('card', 'mb-3', 'carrito-completo-item'); // Clases de Bootstrap para mejor estilo
-                      itemDiv.innerHTML = `
-                          <div class="card-body">
-                              <div class="d-flex justify-content-between align-items-center">
-                                  <div>
-                                      <h5 class="card-title">${item.nombre}</h5>
-                                      <p class="card-text mb-1"><strong>Tipo:</strong> ${item.tipoServicio}</p>
-                                      ${item.tipoServicio === 'Hospedaje' && item.fechas && item.fechas.length === 2 ? 
-                                          `<p class="card-text mb-1"><strong>Fechas:</strong> ${new Date(item.fechas[0]).toLocaleDateString('es-CL')} al ${new Date(item.fechas[1]).toLocaleDateString('es-CL')} (${item.noches} noches)</p>` : ''}
-                                      ${(item.tipoServicio === 'Actividad' || item.tipoServicio === 'Gastronomia') && item.fechas && item.fechas.length === 1 ? 
-                                          `<p class="card-text mb-1"><strong>Fecha:</strong> ${new Date(item.fechas[0]).toLocaleDateString('es-CL')}</p>` : ''}
-                                      ${item.cantidadPersonas && (item.tipoServicio === 'Actividad' || item.tipoServicio === 'Gastronomia') ? 
-                                          `<p class="card-text mb-1"><strong>Personas:</strong> ${item.cantidadPersonas}</p>` : ''}
-                                      <p class="card-text fw-bold">Subtotal por ítem: $${item.subtotal.toFixed(2)}</p>
-                                  </div>
-                                  <button class="btn btn-danger btn-sm remove-item-btn" data-index="${index}">Eliminar</button>
-                              </div>
-                          </div>
-                      `;
-                      fullCartItemsDiv.appendChild(itemDiv);
-                      subtotalAcumulado += item.subtotal;
-                  });
+        function loadAndRenderFullCart() {
+            const cartItems = JSON.parse(sessionStorage.getItem('cartItems')) || [];
+            fullCartItemsDiv.innerHTML = ''; // Limpiar items actuales
+            let subtotalAcumulado = 0;
 
-                  // Añadir event listeners a los botones de eliminar recién creados
-                  document.querySelectorAll('.remove-item-btn').forEach(button => {
-                      button.addEventListener('click', function() {
-                          const index = parseInt(this.dataset.index);
-                          removeItemFromFullCart(index);
-                      });
-                  });
+            if (cartItems.length === 0) {
+                fullCartItemsDiv.innerHTML = '<p class="text-center text-muted">Tu carrito está vacío. <a href="{% url "inicio" %}">Comienza a explorar nuestros servicios</a>.</p>';
+                procederPagoBtn.disabled = true; // Deshabilitar el botón de pago si el carrito está vacío
+            } else {
+                cartItems.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.classList.add('card', 'mb-3', 'carrito-completo-item'); // Clases de Bootstrap para mejor estilo
+                    itemDiv.innerHTML = `
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="card-title">${item.nombre}</h5>
+                                    <p class="card-text mb-1"><strong>Tipo:</strong> ${item.tipoServicio}</p>
+                                    ${item.tipoServicio === 'Hospedaje' && item.fechas && item.fechas.length === 2 ? 
+                                        `<p class="card-text mb-1"><strong>Fechas:</strong> ${new Date(item.fechas[0]).toLocaleDateString('es-CL')} al ${new Date(item.fechas[1]).toLocaleDateString('es-CL')} (${item.noches} noches)</p>` : ''}
+                                    ${(item.tipoServicio === 'Actividad' || item.tipoServicio === 'Gastronomia') && item.fechas && item.fechas.length === 1 ? 
+                                        `<p class="card-text mb-1"><strong>Fecha:</strong> ${new Date(item.fechas[0]).toLocaleDateString('es-CL')}</p>` : ''}
+                                    ${item.cantidadPersonas && (item.tipoServicio === 'Actividad' || item.tipoServicio === 'Gastronomia') ? 
+                                        `<p class="card-text mb-1"><strong>Personas:</strong> ${item.cantidadPersonas}</p>` : ''}
+                                    <p class="card-text fw-bold">Subtotal por ítem: $${item.subtotal.toFixed(2)}</p>
+                                </div>
+                                <button class="btn btn-danger btn-sm remove-item-btn" data-index="${index}">Eliminar</button>
+                            </div>
+                        </div>
+                    `;
+                    fullCartItemsDiv.appendChild(itemDiv);
+                    subtotalAcumulado += item.subtotal;
+                });
 
-                  
-                  const impuestos = subtotalAcumulado * 0.19; 
-                  const totalFinal = subtotalAcumulado + impuestos;
+                // Añadir event listeners a los botones de eliminar recién creados
+                document.querySelectorAll('.remove-item-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const index = parseInt(this.dataset.index);
+                        removeItemFromFullCart(index);
+                    });
+                });
 
-                  subtotalCompletoSpan.textContent = subtotalAcumulado.toFixed(2);
-                  impuestosCompletoSpan.textContent = impuestos.toFixed(2);
-                  totalFinalCompletoSpan.textContent = totalFinal.toFixed(2);
-                  procederPagoBtn.disabled = false;
-              }
-          }
+                const impuestos = subtotalAcumulado * 0.19; 
+                const totalFinal = subtotalAcumulado + impuestos;
 
-          function removeItemFromFullCart(index) {
-              let cartItems = JSON.parse(sessionStorage.getItem('cartItems')) || [];
-              cartItems.splice(index, 1);
-              sessionStorage.setItem('cartItems', JSON.stringify(cartItems));
-              loadAndRenderFullCart(); // Vuelve a renderizar el carrito después de eliminar
-              // También podrías querer actualizar el carrito desplegable si está visible en la misma página
-              // if (typeof renderCart === 'function') { // Asumiendo que renderCart existe en el JS principal
-              //     renderCart(cartItems);
-              // }
-          }
+                subtotalCompletoSpan.textContent = subtotalAcumulado.toFixed(2);
+                impuestosCompletoSpan.textContent = impuestos.toFixed(2);
+                totalFinalCompletoSpan.textContent = totalFinal.toFixed(2);
+                procederPagoBtn.disabled = false;
+            }
+        }
 
-          // Cargar y renderizar el carrito cuando la página esté lista
-          loadAndRenderFullCart();
+        function removeItemFromFullCart(index) {
+            let cartItems = JSON.parse(sessionStorage.getItem('cartItems')) || [];
+            cartItems.splice(index, 1);
+            sessionStorage.setItem('cartItems', JSON.stringify(cartItems));
+            loadAndRenderFullCart(); // Vuelve a renderizar el carrito después de eliminar
+        }
 
-          // Event listener para el botón de proceder al pago
-          procederPagoBtn.addEventListener('click', function() {
-              const cartItems = JSON.parse(sessionStorage.getItem('cartItems')) || [];
-              if (cartItems.length > 0) {
-                  alert('Simulando proceder al pago con los siguientes ítems:\n\n' + JSON.stringify(cartItems, null, 2));
-                  // AQUÍ ES DONDE LLAMARÍAS A TU LÓGICA DE PAGO EN EL BACKEND
-                  // Por ejemplo, enviar estos datos a una URL de Django que procesaría el pago:
-                  // fetch('/api/procesar_pago/', {
-                  //     method: 'POST',
-                  //     headers: {
-                  //         'Content-Type': 'application/json',
-                  //         'X-CSRFToken': '{{ csrf_token }}' // Si estás en un template de Django
-                  //     },
-                  //     body: JSON.stringify(cartItems)
-                  // })
-                  // .then(response => response.json())
-                  // .then(data => {
-                  //     if (data.success) {
-                  //         alert('Pago procesado con éxito!');
-                  //         sessionStorage.removeItem('cartItems'); // Limpiar carrito
-                  //         loadAndRenderFullCart(); // Actualizar la vista
-                  //     } else {
-                  //         alert('Error al procesar el pago: ' + data.message);
-                  //     }
-                  // })
-                  // .catch(error => console.error('Error:', error));
+        // Cargar y renderizar el carrito cuando la página esté lista
+        loadAndRenderFullCart();
 
-              } else {
-                  alert('El carrito está vacío. Por favor, añade ítems antes de proceder al pago.');
-              }
-          });
-      });
-  </script>
+        // Event listener para el botón de proceder al pago
+        procederPagoBtn.addEventListener('click', function() {
+            const cartItems = JSON.parse(sessionStorage.getItem('cartItems')) || [];
+            if (cartItems.length > 0) {
+                // Confirmación opcional antes de enviar
+                if (!confirm('¿Estás seguro de que quieres proceder al pago de estos ítems?')) {
+                    return; // Detiene la ejecución si el usuario cancela
+                }
+
+                // Deshabilitar botón para evitar múltiples clics
+                procederPagoBtn.disabled = true;
+                procederPagoBtn.textContent = 'Procesando...';
+
+                fetch('/api/procesar_pago/', { // Asegúrate que esta URL sea correcta según tu urls.py
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken // Usa la función getCookie para obtener el token
+                    },
+                    body: JSON.stringify({ cartItems: cartItems }) // Envía el array de ítems dentro de un objeto
+                })
+                .then(response => {
+                    // console.log('Respuesta cruda:', response); // Para depuración
+                    if (!response.ok) {
+                        // Manejar errores HTTP (ej. 400, 403, 500)
+                        return response.json().then(errorData => {
+                            throw new Error(errorData.message || `Error del servidor: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert('Pago procesado con éxito! ' + data.message);
+                        sessionStorage.removeItem('cartItems'); // Limpiar carrito
+                        loadAndRenderFullCart(); // Actualizar la vista del carrito
+                        // Redirigir al perfil del usuario para que vea sus reservas
+                        window.location.href = '{% url "perfil" %}'; 
+                    } else {
+                        // Si success es false pero la respuesta HTTP fue 200 (error lógico del backend)
+                        alert('Error al procesar el pago: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error en la petición fetch:', error);
+                    alert('Hubo un problema al procesar su pago: ' + error.message);
+                })
+                .finally(() => {
+                    // Habilitar botón de nuevo al finalizar, sin importar el resultado
+                    procederPagoBtn.disabled = false;
+                    procederPagoBtn.textContent = 'Proceder al Pago';
+                });
+
+            } else {
+                alert('El carrito está vacío. Por favor, añade ítems antes de proceder al pago.');
+            }
+        });
+    });
+</script>
 
 </body>
 </html>

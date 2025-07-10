@@ -10,6 +10,7 @@ urlpatterns = [
     path('actividad/', views.actividad, name='actividad'),
     path('gastronomia/', views.gastronomia, name='gastronomia'),
     path('carrito/', views.carrito, name='carrito'),
+    path('api/procesar_pago/', views.procesar_pago, name='procesar_pago'),
     path('inicioregistrado/', views.inicioregistrado, name='inicioregistrado'),
     path('perfil/', views.perfil, name='perfil'),
     path('listar_reservas_anfitrion/', views.listar_reservas_anfitrion, name='listar_reservas_anfitrion'),
