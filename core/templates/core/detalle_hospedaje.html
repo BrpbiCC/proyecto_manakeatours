@@ -156,13 +156,12 @@
                                 data-service-name="{{ servicio.nombre }}"
                                 data-service-type="{{ servicio.tipo_servicio.nombre|capfirst }}" 
                                 data-price-base="{{ servicio.precio_base }}"
-                                data-occupied-dates-url="{% url 'api_hospedaje_fechas_ocupadas' servicio_id=servicio.id %}"> {# AÑADIDA ESTA LÍNEA CLAVE #}
+                                data-occupied-dates-url="{% url 'api_hospedaje_fechas_ocupadas' servicio_id=servicio.id %}"> 
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="fecha-reserva-{{ servicio.id }}" class="form-label visually-hidden">Seleccionar Fechas</label>
                                     <input type="text" class="form-control date-input date-range-picker" id="fecha-reserva-{{ servicio.id }}" name="fechas_reserva" placeholder="Selecciona fecha(s)">
                                 </div> 
-                                {# Campo "Número de Personas" ELIMINADO para hospedajes #}
                                 
                                 <div class="form-text mt-2 text-muted" id="price-display-{{ servicio.id }}">Precio estimado: $0.00</div>
                                 <div class="d-flex justify-content-center mb-3">

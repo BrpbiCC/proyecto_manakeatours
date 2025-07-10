@@ -34,14 +34,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p>Tipo: ${item.tipoServicio}</p>
                 `;
                 if (item.tipoServicio === 'Hospedaje' && item.fechas && item.fechas.length === 2) {
-                    const startDate = new Date(item.fechas[0]).toLocaleDateString('es-CL');
-                    const endDate = new Date(item.fechas[1]).toLocaleDateString('es-CL');
+                    const startDate = new Date(item.fechas[0] + 'T12:00:00').toLocaleDateString('es-CL');
+                    const endDate = new Date(item.fechas[1] + 'T12:00:00').toLocaleDateString('es-CL');
                     itemDetails += `<p>Fechas: ${startDate} al ${endDate} (${item.noches} noches)</p>`;
                 } else if (item.tipoServicio === 'Actividad' && item.fechas && item.fechas.length === 1) {
-                    const activityDate = new Date(item.fechas[0]).toLocaleDateString('es-CL');
+                    const activityDate = new Date(item.fechas[0] + 'T12:00:00').toLocaleDateString('es-CL');
                     itemDetails += `<p>Fecha: ${activityDate}</p>`;
                 } else if (item.tipoServicio === 'Gastronomia' && item.fechas && item.fechas.length === 1) {
-                    const gastronomyDate = new Date(item.fechas[0]).toLocaleDateString('es-CL');
+                    const gastronomyDate = new Date(item.fechas[0] + 'T12:00:00').toLocaleDateString('es-CL');
                     itemDetails += `<p>Fecha: ${gastronomyDate}</p>`;
                 }
                 // Display number of people ONLY for Actividad and Gastronomia
