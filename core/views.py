@@ -3,9 +3,8 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
-from django.http import JsonResponse # ¡IMPORTAR ESTO!
-from datetime import date, timedelta # ¡IMPORTAR ESTO!
-
+from django.http import JsonResponse 
+from datetime import date, timedelta 
 from .forms import RegistroClienteForm, LoginForm, PerfilUsuarioForm, ServicioForm
 from .models import Usuario, TipoUsuario, Reserva, DetalleReserva, Servicio, TipoServicio, EstadoReserva
 
