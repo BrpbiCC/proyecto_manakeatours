@@ -626,3 +626,19 @@ footer .btn-outline-light:hover {
 
 }
 
+
+.flatpickr-day.disabled, .flatpickr-day.flatpickr-disabled {
+    background-color: #ffdddd !important;
+    color: #ff0000 !important;
+    position: relative;
+    cursor: not-allowed;
+}
+
+.flatpickr-day.flatpickr-disabled::after {
+    content: "✖";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 0.8rem;
+    color: red;
+}

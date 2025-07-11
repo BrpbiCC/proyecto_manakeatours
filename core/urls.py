@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views 
+from .views import api_hospedaje_fechas_ocupadas
 
 urlpatterns = [
     path('', views.inicio, name='inicio'),
@@ -16,7 +17,7 @@ urlpatterns = [
     path('listar_reservas_anfitrion/', views.listar_reservas_anfitrion, name='listar_reservas_anfitrion'),
     path('listar_servicios_admimistrador/', views.listar_servicios_administrador, name='listar_servicios_administrador'),
     path('detalle_hospedaje/<int:servicio_id>/', views.detalle_hospedaje, name='detalle_hospedaje'),
-    path('api/hospedaje/<int:servicio_id>/fechas_ocupadas/', views.get_fechas_ocupadas_hospedaje, name='api_hospedaje_fechas_ocupadas'), # ¡NUEVA LÍNEA!
+    path('api/hospedaje/<int:servicio_id>/fechas_ocupadas/', api_hospedaje_fechas_ocupadas, name='api_hospedaje_fechas_ocupadas'),
     path('detalle_actividad/<int:servicio_id>/', views.detalle_actividad, name='detalle_actividad'),
     path('detalle_gastronomia/<int:servicio_id>/', views.detalle_gastronomia, name='detalle_gastronomia'),
 ]

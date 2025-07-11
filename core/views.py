@@ -350,42 +350,41 @@ def detalle_gastronomia(request, servicio_id):
     }
     return render(request, 'core/detalle_gastronomia.html', context)
 
-# --- Nueva Vista para obtener fechas ocupadas ---
-def get_fechas_ocupadas_hospedaje(request, servicio_id):
-    # Asegúrate de que el servicio es un hospedaje
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from datetime import timedelta, date
+from .models import Servicio, DetalleReserva, EstadoReserva
+
+# --- API: Fechas ocupadas por hospedaje ---
+def api_hospedaje_fechas_ocupadas(request, servicio_id):
+    """
+    Devuelve un JSON con las fechas ocupadas para un servicio de tipo 'hospedaje'.
+    Se utiliza para deshabilitar fechas en el selector del frontend.
+    """
     servicio = get_object_or_404(Servicio, pk=servicio_id, tipo_servicio__nombre='hospedaje')
 
-    # Obtener el estado 'Aceptada' para filtrar solo reservas confirmadas
     try:
-        estado_aceptada = EstadoReserva.objects.get(estado='Aceptada')
+        estados_ocupados = EstadoReserva.objects.filter(estado__in=['Aceptada', 'Confirmada'])
     except EstadoReserva.DoesNotExist:
-        # Si no existe el estado 'Aceptada', no hay reservas confirmadas que considerar
         return JsonResponse({'fechas_ocupadas': []})
 
-    # Buscar todas las reservas aceptadas para este hospedaje
-    # Que se solapen con fechas futuras o actuales
     reservas_ocupadas = DetalleReserva.objects.filter(
         servicio=servicio,
-        reserva__estado=estado_aceptada,
-        reserva__fecha_fin__gte=date.today() # Solo reservas que aún no han terminado
-    ).select_related('reserva').order_by('reserva__fecha_inicio')
+        reserva__estado__in=estados_ocupados,
+        reserva__fecha_fin__gte=date.today()
+    ).select_related('reserva')
 
-    fechas_ocupadas_list = []
+    fechas_ocupadas = set()
     for dr in reservas_ocupadas:
-        fecha_inicio = dr.reserva.fecha_inicio
-        fecha_fin = dr.reserva.fecha_fin
+        inicio = dr.reserva.fecha_inicio
+        fin = dr.reserva.fecha_fin
+        while inicio < fin:
+            fechas_ocupadas.add(inicio.strftime('%Y-%m-%d'))
+            inicio += timedelta(days=1)
 
-        # Generar todas las fechas entre fecha_inicio y fecha_fin (excluyendo fecha_fin)
-        # Esto es crucial porque fecha_fin es la fecha de SALIDA, lo que significa que la noche anterior es la última noche ocupada.
-        current_date = fecha_inicio
-        while current_date < fecha_fin:
-            fechas_ocupadas_list.append(current_date.strftime('%Y-%m-%d'))
-            current_date += timedelta(days=1)
+    return JsonResponse({'fechas_ocupadas': sorted(fechas_ocupadas)})
 
-    # Eliminar duplicados y ordenar para asegurar un JSON limpio
-    fechas_ocupadas_unicas = sorted(list(set(fechas_ocupadas_list)))
 
-    return JsonResponse({'fechas_ocupadas': fechas_ocupadas_unicas})
 
 # Nueva vista para procesar el pago y guardar las reservas
 @login_required(login_url='login')
