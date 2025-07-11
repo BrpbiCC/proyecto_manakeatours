@@ -37,4 +37,6 @@ urlpatterns = [
 
     # API de Pago
     path('api/procesar_pago/', views.procesar_pago, name='procesar_pago'),
+    path('pago/', views.vista_pago, name='vista_pago'),
+    path('procesar_pago/', views.procesar_pago, name='procesar_pago'),
 ]

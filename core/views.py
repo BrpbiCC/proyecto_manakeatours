@@ -10,7 +10,7 @@ from django.utils import timezone
 import json
 from datetime import date, timedelta
 from .forms import RegistroClienteForm, LoginForm, PerfilUsuarioForm, ServicioForm
-from .models import Usuario, TipoUsuario, Reserva, DetalleReserva, Servicio, TipoServicio, EstadoReserva
+from .models import Usuario, TipoUsuario, Reserva, DetalleReserva, Servicio, TipoServicio, EstadoReserva, EstadoPago, MetodoPago, Pago
 
 # --- Funciones de Ayuda ---
 def is_anfitrion(user):
@@ -394,106 +394,90 @@ def api_singleday_fechas_ocupadas(request, servicio_id):
     fechas_ocupadas_por_usuario = sorted(list(set([dr.reserva.fecha_inicio.strftime('%Y-%m-%d') for dr in reservas_del_usuario])))
 
     return JsonResponse({'fechas_ocupadas': fechas_ocupadas_por_usuario})
-# === FIN DE LA SECCIÓN CORREGIDA ===
 
-
-
-# Nueva vista para procesar el pago y guardar las reservas
 @login_required(login_url='login')
-@require_POST # Asegura que solo se acepte peticiones POST
+def vista_pago(request):
+    """
+    Muestra la página de pago y le pasa el nombre completo del
+    usuario para rellenar automáticamente el campo del titular.
+    """
+    # Obtenemos el nombre completo del usuario que ha iniciado sesión
+    nombre_usuario = request.user.get_full_name()
+
+    # Creamos un 'contexto' para enviar esa información a la plantilla
+    context = {
+        'nombre_completo_usuario': nombre_usuario
+    }
+    
+    # Renderizamos la plantilla, pero ahora con el contexto que incluye el nombre
+    return render(request, 'core/pago.html', context)
+
+@login_required(login_url='login')
+@require_POST # Solo permite que esta vista sea llamada con el método POST
 def procesar_pago(request):
-    if not request.user.is_cliente:
-        return JsonResponse({'success': False, 'message': 'Solo los clientes pueden realizar reservas.'}, status=403)
-
+    """
+    Procesa el formulario de pago simulado, guarda los datos en la BDD
+    y redirige al perfil del usuario.
+    """
     try:
-        data = json.loads(request.body)
-        cart_items = data.get('cartItems', [])
-        
-        if not cart_items:
-            return JsonResponse({'success': False, 'message': 'El carrito está vacío.'}, status=400)
+        # Obtiene los datos del campo oculto del formulario
+        cart_items_str = request.POST.get('cart_items')
+        metodo_pago_nombre = request.POST.get('metodo_pago')
 
-        estado_pendiente, created = EstadoReserva.objects.get_or_create(estado='Pendiente')
-        
-        reservas_creadas = []
-        total_acumulado_carrito = Decimal('0.00')
+        if not cart_items_str or cart_items_str == '[]':
+            messages.error(request, 'El carrito está vacío.')
+            return redirect('carrito')
 
+        cart_items = json.loads(cart_items_str)
+
+        # Prepara los objetos de estado que usaremos
+        estado_confirmada, _ = EstadoReserva.objects.get_or_create(estado='Confirmada')
+        metodo_pago_obj, _ = MetodoPago.objects.get_or_create(nombre=metodo_pago_nombre)
+        estado_pago_aprobado, _ = EstadoPago.objects.get_or_create(estado='Aprobado')
+
+        # Recorre cada ítem del carrito
         for item_data in cart_items:
-            try:
-                servicio_id = item_data.get('id')
-                tipo_servicio_str = item_data.get('tipoServicio')
-                fechas = item_data.get('fechas', [])
-                noches = item_data.get('noches', 0)
-                cantidad_personas = item_data.get('cantidadPersonas', 1)
-                subtotal_item = Decimal(str(item_data.get('subtotal', 0.00)))
+            servicio = get_object_or_404(Servicio, pk=item_data.get('id'))
+            subtotal = Decimal(item_data.get('subtotal'))
+            iva = subtotal * Decimal('0.19')
+            total_con_iva = subtotal + iva
 
-                servicio = get_object_or_404(Servicio, pk=servicio_id)
+            fechas = item_data.get('fechas', [])
+            fecha_inicio = date.fromisoformat(fechas[0])
+            fecha_fin = date.fromisoformat(fechas[-1])
 
-                iva_item = subtotal_item * Decimal('0.19')
-                total_item = subtotal_item + iva_item
+            # 1. Crea la Reserva
+            reserva = Reserva.objects.create(
+                usuario=request.user,
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin,
+                estado=estado_confirmada,
+                total=total_con_iva
+            )
 
-                fecha_inicio_reserva = None
-                fecha_fin_reserva = None
+            # 2. Crea el Detalle de la Reserva
+            DetalleReserva.objects.create(
+                reserva=reserva,
+                servicio=servicio,
+                cantidad_dia=item_data.get('noches', 1),
+                num_persona=item_data.get('cantidadPersonas', 1),
+                subtotal=subtotal
+            )
+            
+            # 3. Crea el Pago (¡LA PARTE CLAVE!)
+            Pago.objects.create(
+                reserva=reserva,
+                metodo_pago=metodo_pago_obj,
+                estado_pago=estado_pago_aprobado,
+                monto=total_con_iva,
+                transaccion=f'SIM-{reserva.id}-{timezone.now().timestamp()}' # ID de transacción simulado
+            )
 
-                if tipo_servicio_str == 'Hospedaje' and len(fechas) == 2:
-                    f_inicio_str, f_fin_str = fechas[0], fechas[1]
-                    fecha_inicio_reserva = date.fromisoformat(f_inicio_str)
-                    fecha_fin_reserva = date.fromisoformat(f_fin_str)
-                    
-                    if fecha_fin_reserva <= fecha_inicio_reserva:
-                        raise ValueError(f"La fecha de fin para {servicio.nombre} debe ser posterior a la de inicio.")
-                    
-                    cantidad_dias_detalle = noches 
-                    num_personas_detalle = 1
+        messages.success(request, '¡Tu pago ha sido procesado y tus reservas han sido confirmadas!')
+        request.session['pago_exitoso'] = True # Para limpiar el carrito en la siguiente página
+        return redirect('perfil')
 
-                elif (tipo_servicio_str in ['Actividad', 'Gastronomia']) and len(fechas) == 1:
-                    fecha_unica_str = fechas[0]
-                    fecha_inicio_reserva = date.fromisoformat(fecha_unica_str)
-                    fecha_fin_reserva = fecha_inicio_reserva
-                    
-                    cantidad_dias_detalle = 1
-                    num_personas_detalle = cantidad_personas
-
-                else:
-                    raise ValueError(f"Fechas inválidas para el servicio {servicio.nombre} de tipo {tipo_servicio_str}.")
-                
-                reserva = Reserva.objects.create(
-                    usuario=request.user,
-                    fecha_reserva=timezone.now(),
-                    fecha_inicio=fecha_inicio_reserva,
-                    fecha_fin=fecha_fin_reserva,
-                    estado=estado_pendiente,
-                    total=total_item
-                )
-
-                detalle_reserva = DetalleReserva.objects.create(
-                    reserva=reserva,
-                    servicio=servicio,
-                    cantidad_dia=cantidad_dias_detalle,
-                    num_persona=num_personas_detalle,
-                    subtotal=subtotal_item
-                )
-                reservas_creadas.append(reserva.id)
-                total_acumulado_carrito += total_item
-
-            except Servicio.DoesNotExist:
-                return JsonResponse({'success': False, 'message': f'Servicio con ID {item_data.get("id")} no encontrado.'}, status=404)
-            except ValueError as ve:
-                return JsonResponse({'success': False, 'message': str(ve)}, status=400)
-            except Exception as e:
-                print(f"Error al procesar ítem del carrito: {e}")
-                return JsonResponse({'success': False, 'message': f'Error interno al procesar el ítem: {e}'}, status=500)
-
-        estado_confirmada, created = EstadoReserva.objects.get_or_create(estado='Confirmada')
-        for reserva_id in reservas_creadas:
-            Reserva.objects.filter(id=reserva_id).update(estado=estado_confirmada)
-        
-        return JsonResponse({
-            'success': True, 
-            'message': 'Reservas procesadas y guardadas con éxito. Redirigiendo a tu perfil...',
-            'total_pedido': float(total_acumulado_carrito)
-        }, status=200)
-
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'message': 'Petición JSON inválida.'}, status=400)
     except Exception as e:
-        return JsonResponse({'success': False, 'message': f'Error inesperado del servidor: {e}'}, status=500)
+        print(f"Error en procesar_pago: {e}") # Para que veas el error en la consola
+        messages.error(request, f'Hubo un problema inesperado al procesar tu pago.')
+        return redirect('carrito')
