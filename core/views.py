@@ -384,6 +384,32 @@ def api_hospedaje_fechas_ocupadas(request, servicio_id):
 
     return JsonResponse({'fechas_ocupadas': sorted(fechas_ocupadas)})
 
+def api_singleday_fechas_ocupadas(request, servicio_id):
+    """
+    Devuelve un JSON con las fechas ocupadas para servicios de un solo día 
+    (actividad, gastronomia). Se utiliza para deshabilitar fechas en el frontend.
+    """
+    servicio = get_object_or_404(Servicio, pk=servicio_id)
+    
+    # Solo consideramos reservas que están confirmadas o aceptadas.
+    try:
+        estados_ocupados = EstadoReserva.objects.filter(estado__in=['Aceptada', 'Confirmada'])
+    except EstadoReserva.DoesNotExist:
+        return JsonResponse({'fechas_ocupadas': []})
+
+    # Buscamos todas las reservas para este servicio que estén en los estados de ocupado
+    # y que sean para hoy o una fecha futura.
+    reservas_ocupadas = DetalleReserva.objects.filter(
+        servicio=servicio,
+        reserva__estado__in=estados_ocupados,
+        reserva__fecha_inicio__gte=date.today()
+    ).select_related('reserva')
+
+    # Extraemos las fechas de inicio de esas reservas. Usamos un 'set' para evitar duplicados.
+    fechas_ocupadas = sorted(list(set([dr.reserva.fecha_inicio.strftime('%Y-%m-%d') for dr in reservas_ocupadas])))
+
+    return JsonResponse({'fechas_ocupadas': fechas_ocupadas})
+
 
 
 # Nueva vista para procesar el pago y guardar las reservas
