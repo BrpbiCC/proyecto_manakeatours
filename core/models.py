@@ -157,7 +157,7 @@ class Servicio(models.Model):
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField()
     tipo_servicio = models.ForeignKey('TipoServicio', on_delete=models.CASCADE)
-    precio_base = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
+    precio_base = models.DecimalField(max_digits=10, decimal_places=0, default=0)
     ubicacion = models.CharField(max_length=255, default='') 
     duracion = models.CharField(max_length=100, blank=True, null=True) 
     habitacion = models.IntegerField(blank=True, null=True)
@@ -180,7 +180,7 @@ class Reserva(models.Model):
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
     estado = models.ForeignKey(EstadoReserva, on_delete=models.SET_NULL, null=True)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=0)
 
     def __str__(self):
         return f"Reserva {self.id} - {self.usuario.correo}"
@@ -191,7 +191,7 @@ class DetalleReserva(models.Model):
     cantidad_dia = models.IntegerField(default=1)
     num_persona = models.IntegerField(default=1, # Default to 1 person if not specified
     help_text="Número de personas que pueden participar en esta actividad")
-    subtotal = models.DecimalField(max_digits=12, decimal_places=2,  default=0.00)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=0,  default=0)
     
     def __str__(self): 
         return f"Detalle de Reserva {self.reserva.id} - {self.servicio.nombre}"
@@ -211,7 +211,7 @@ class Pago(models.Model):
     reserva = models.OneToOneField(Reserva, on_delete=models.CASCADE)
     metodo_pago = models.ForeignKey(MetodoPago, on_delete=models.SET_NULL, null=True)
     estado_pago = models.ForeignKey(EstadoPago, on_delete=models.SET_NULL, null=True)
-    monto = models.DecimalField(max_digits=10, decimal_places=2)
+    monto = models.DecimalField(max_digits=10, decimal_places=0)
     fecha_pago = models.DateTimeField(auto_now_add=True)
     transaccion = models.CharField(max_length=255,  default='')
 

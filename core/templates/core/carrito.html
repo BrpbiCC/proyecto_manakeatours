@@ -35,7 +35,7 @@
                             {% endif %}
                         </span>
                     </li>
-                   
+                    
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'perfil' %}">PERFIL</a>
                     </li>
@@ -62,7 +62,7 @@
     </div>
 </nav>
 
-    <div id="carouselExampleSlidesOnly" class="carousel slide border border-white" data-bs-ride="carousel" style="height: 300px;">
+    <div id="carouselExampleSlidesOnly" class="carousel slide border border-white" data-bs-ride="carousel" style="height: 300px;">
     <div class="carousel-inner h-100">
         <div class="carousel-item active position-relative h-100">
             <img src="https://www.cvc.com.br/dicas-de-viagem/wp-content/uploads/2019/09/cajon-del-maipo-embalse-el-yeso-chile.jpg"
@@ -108,7 +108,7 @@
     </div>
 </div>
 
-     <footer class="bg-dark text-center text-white py-4 mt-5">
+     <footer class="bg-dark text-center text-white py-4 mt-5">
     <div class="container">
         <div class="mb-3 social-icons-container">
             <a href="https://www.instagram.com" target="_blank" class="btn btn-outline-light mx-1">
@@ -128,8 +128,9 @@
     </div>
 </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
- <script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
         const fullCartItemsDiv = document.getElementById('full-cart-items');
         const subtotalCompletoSpan = document.getElementById('subtotal-completo');
@@ -137,14 +138,12 @@
         const totalFinalCompletoSpan = document.getElementById('total-final-completo');
         const procederPagoBtn = document.getElementById('proceder-pago-btn');
 
-        // Función para obtener el CSRF token de las cookies
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
                 const cookies = document.cookie.split(';');
                 for (let i = 0; i < cookies.length; i++) {
                     const cookie = cookies[i].trim();
-                    // Does this cookie string begin with the name we want?
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                         break;
@@ -155,32 +154,32 @@
         }
         const csrftoken = getCookie('csrftoken');
 
-
+        // === INICIO DE LA FUNCIÓN CORREGIDA ===
         function loadAndRenderFullCart() {
             const cartItems = JSON.parse(sessionStorage.getItem('cartItems')) || [];
-            fullCartItemsDiv.innerHTML = ''; // Limpiar items actuales
+            fullCartItemsDiv.innerHTML = ''; 
             let subtotalAcumulado = 0;
 
             if (cartItems.length === 0) {
-                fullCartItemsDiv.innerHTML = '<p class="text-center text-muted">Tu carrito está vacío. <a href="{% url "inicio" %}">Comienza a explorar nuestros servicios</a>.</p>';
-                procederPagoBtn.disabled = true; // Deshabilitar el botón de pago si el carrito está vacío
+                fullCartItemsDiv.innerHTML = '<div class="alert alert-info text-center">Tu carrito está vacío. <a href="{% url "inicioregistrado" %}">Comienza a explorar</a>.</div>';
+                procederPagoBtn.disabled = true;
             } else {
                 cartItems.forEach((item, index) => {
                     const itemDiv = document.createElement('div');
-                    itemDiv.classList.add('card', 'mb-3', 'carrito-completo-item'); // Clases de Bootstrap para mejor estilo
+                    itemDiv.classList.add('card', 'mb-3', 'carrito-completo-item');
                     itemDiv.innerHTML = `
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h5 class="card-title">${item.nombre}</h5>
-                                    <p class="card-text mb-1"><strong>Tipo:</strong> ${item.tipoServicio}</p>
+                                    <p class="card-text mb-1 text-muted"><strong>Tipo:</strong> ${item.tipoServicio}</p>
                                     ${item.tipoServicio === 'Hospedaje' && item.fechas && item.fechas.length === 2 ? 
-                                        `<p class="card-text mb-1"><strong>Fechas:</strong> ${new Date(item.fechas[0]).toLocaleDateString('es-CL')} al ${new Date(item.fechas[1]).toLocaleDateString('es-CL')} (${item.noches} noches)</p>` : ''}
+                                        `<p class="card-text mb-1"><strong>Fechas:</strong> ${new Date(item.fechas[0] + 'T12:00:00').toLocaleDateString('es-CL')} al ${new Date(item.fechas[1] + 'T12:00:00').toLocaleDateString('es-CL')} (${item.noches} noches)</p>` : ''}
                                     ${(item.tipoServicio === 'Actividad' || item.tipoServicio === 'Gastronomia') && item.fechas && item.fechas.length === 1 ? 
-                                        `<p class="card-text mb-1"><strong>Fecha:</strong> ${new Date(item.fechas[0]).toLocaleDateString('es-CL')}</p>` : ''}
+                                        `<p class="card-text mb-1"><strong>Fecha:</strong> ${new Date(item.fechas[0] + 'T12:00:00').toLocaleDateString('es-CL')}</p>` : ''}
                                     ${item.cantidadPersonas && (item.tipoServicio === 'Actividad' || item.tipoServicio === 'Gastronomia') ? 
                                         `<p class="card-text mb-1"><strong>Personas:</strong> ${item.cantidadPersonas}</p>` : ''}
-                                    <p class="card-text fw-bold">Subtotal por ítem: $${item.subtotal.toFixed(2)}</p>
+                                    <p class="card-text fw-bold mt-2">Subtotal por Ítem: $${item.subtotal.toLocaleString('es-CL')}</p>
                                 </div>
                                 <button class="btn btn-danger btn-sm remove-item-btn" data-index="${index}">Eliminar</button>
                             </div>
@@ -190,7 +189,6 @@
                     subtotalAcumulado += item.subtotal;
                 });
 
-                // Añadir event listeners a los botones de eliminar recién creados
                 document.querySelectorAll('.remove-item-btn').forEach(button => {
                     button.addEventListener('click', function() {
                         const index = parseInt(this.dataset.index);
@@ -201,78 +199,78 @@
                 const impuestos = subtotalAcumulado * 0.19; 
                 const totalFinal = subtotalAcumulado + impuestos;
 
-                subtotalCompletoSpan.textContent = subtotalAcumulado.toFixed(2);
-                impuestosCompletoSpan.textContent = impuestos.toFixed(2);
-                totalFinalCompletoSpan.textContent = totalFinal.toFixed(2);
+                subtotalCompletoSpan.textContent = subtotalAcumulado.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                impuestosCompletoSpan.textContent = impuestos.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                totalFinalCompletoSpan.textContent = totalFinal.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 procederPagoBtn.disabled = false;
             }
         }
+        // === FIN DE LA FUNCIÓN CORREGIDA ===
 
         function removeItemFromFullCart(index) {
             let cartItems = JSON.parse(sessionStorage.getItem('cartItems')) || [];
             cartItems.splice(index, 1);
             sessionStorage.setItem('cartItems', JSON.stringify(cartItems));
-            loadAndRenderFullCart(); // Vuelve a renderizar el carrito después de eliminar
+            loadAndRenderFullCart(); 
         }
 
-        // Cargar y renderizar el carrito cuando la página esté lista
         loadAndRenderFullCart();
 
-        // Event listener para el botón de proceder al pago
         procederPagoBtn.addEventListener('click', function() {
             const cartItems = JSON.parse(sessionStorage.getItem('cartItems')) || [];
             if (cartItems.length > 0) {
-                // Confirmación opcional antes de enviar
-                if (!confirm('¿Estás seguro de que quieres proceder al pago de estos ítems?')) {
-                    return; // Detiene la ejecución si el usuario cancela
-                }
+                Swal.fire({
+                    title: '¿Confirmar Pedido?',
+                    text: "Estás a punto de confirmar tu reserva.",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Sí, confirmar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        procederPagoBtn.disabled = true;
+                        procederPagoBtn.textContent = 'Procesando...';
 
-                // Deshabilitar botón para evitar múltiples clics
-                procederPagoBtn.disabled = true;
-                procederPagoBtn.textContent = 'Procesando...';
-
-                fetch('/api/procesar_pago/', { // Asegúrate que esta URL sea correcta según tu urls.py
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken // Usa la función getCookie para obtener el token
-                    },
-                    body: JSON.stringify({ cartItems: cartItems }) // Envía el array de ítems dentro de un objeto
-                })
-                .then(response => {
-                    // console.log('Respuesta cruda:', response); // Para depuración
-                    if (!response.ok) {
-                        // Manejar errores HTTP (ej. 400, 403, 500)
-                        return response.json().then(errorData => {
-                            throw new Error(errorData.message || `Error del servidor: ${response.status}`);
+                        fetch('/api/procesar_pago/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrftoken
+                            },
+                            body: JSON.stringify({ cartItems: cartItems })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(errorData => {
+                                    throw new Error(errorData.message || `Error del servidor: ${response.status}`);
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('¡Éxito!', data.message, 'success').then(() => {
+                                    sessionStorage.removeItem('cartItems');
+                                    window.location.href = '{% url "perfil" %}';
+                                });
+                            } else {
+                                Swal.fire('Error', 'Error al procesar el pago: ' + data.message, 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error en la petición fetch:', error);
+                            Swal.fire('Error', 'Hubo un problema al procesar su pago: ' + error.message, 'error');
+                        })
+                        .finally(() => {
+                            procederPagoBtn.disabled = false;
+                            procederPagoBtn.textContent = 'Proceder al Pago';
                         });
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        alert('Pago procesado con éxito! ' + data.message);
-                        sessionStorage.removeItem('cartItems'); // Limpiar carrito
-                        loadAndRenderFullCart(); // Actualizar la vista del carrito
-                        // Redirigir al perfil del usuario para que vea sus reservas
-                        window.location.href = '{% url "perfil" %}'; 
-                    } else {
-                        // Si success es false pero la respuesta HTTP fue 200 (error lógico del backend)
-                        alert('Error al procesar el pago: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error en la petición fetch:', error);
-                    alert('Hubo un problema al procesar su pago: ' + error.message);
-                })
-                .finally(() => {
-                    // Habilitar botón de nuevo al finalizar, sin importar el resultado
-                    procederPagoBtn.disabled = false;
-                    procederPagoBtn.textContent = 'Proceder al Pago';
                 });
-
             } else {
-                alert('El carrito está vacío. Por favor, añade ítems antes de proceder al pago.');
+                Swal.fire('Carrito Vacío', 'Por favor, añade ítems antes de proceder al pago.', 'warning');
             }
         });
     });

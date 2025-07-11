@@ -3,12 +3,12 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
-from django.http import JsonResponse 
+from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from decimal import Decimal
 from django.utils import timezone
 import json
-from datetime import date, timedelta 
+from datetime import date, timedelta
 from .forms import RegistroClienteForm, LoginForm, PerfilUsuarioForm, ServicioForm
 from .models import Usuario, TipoUsuario, Reserva, DetalleReserva, Servicio, TipoServicio, EstadoReserva
 
@@ -136,7 +136,6 @@ def listar_servicios_administrador(request):
         form = ServicioForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            # Puedes añadir mensajes de éxito aquí
             return redirect('listar_servicios_administrador')
 
     # Manejar GET para entrar en modo MODIFICAR
@@ -176,16 +175,10 @@ def listar_servicios_administrador(request):
 @login_required(login_url='login')
 @user_passes_test(is_anfitrion, login_url='login')
 def listar_reservas_anfitrion(request):
-    """
-    Permite al anfitrión listar, filtrar y gestionar (aceptar/rechazar) las reservas
-    relacionadas con sus servicios, todo en la misma vista.
-    """
-    # Obtener todas las reservas relacionadas con los servicios del anfitrión logueado
     reservas_queryset = Reserva.objects.filter(
         detallereserva__servicio__anfitrion=request.user
     ).distinct().order_by('-fecha_reserva')
 
-    # --- Lógica de Filtrado (GET request) ---
     search_tipo_servicio = request.GET.get('tipo_servicio', '').strip()
     search_cliente_correo = request.GET.get('cliente_correo', '').strip()
     search_estado = request.GET.get('estado', '').strip()
@@ -205,19 +198,14 @@ def listar_reservas_anfitrion(request):
             estado__estado__icontains=search_estado
         ).distinct()
 
-    # --- Lógica de Actualización de Estado (POST request) ---
-    # ESTO VUELVE A ESTAR AQUÍ PARA GESTIONAR LAS ACCIONES EN LA MISMA PÁGINA
     if request.method == 'POST':
         reserva_id = request.POST.get('reserva_id')
         action = request.POST.get('action') # 'aceptar' o 'rechazar'
 
         reserva = get_object_or_404(Reserva, id=reserva_id)
 
-        # Verificación de seguridad: Asegurarse de que la reserva pertenece
-        # a uno de los servicios del anfitrión logueado.
         if not DetalleReserva.objects.filter(reserva=reserva, servicio__anfitrion=request.user).exists():
             messages.error(request, "No tienes permiso para modificar esta reserva.")
-            # Redirigir manteniendo los filtros actuales
             query_params = request.GET.urlencode()
             redirect_url = f"{request.path}?{query_params}" if query_params else request.path
             return redirect(redirect_url)
@@ -238,12 +226,10 @@ def listar_reservas_anfitrion(request):
         except Exception as e:
             messages.error(request, f"Error al procesar la reserva: {e}")
 
-        # Después de una actualización, redirigir manteniendo los filtros actuales
         query_params = request.GET.urlencode()
         redirect_url = f"{request.path}?{query_params}" if query_params else request.path
         return redirect(redirect_url)
 
-    # Preparar los datos de las reservas para mostrarlos en la tabla
     reservas_data = []
     for reserva in reservas_queryset:
         servicios_reserva = DetalleReserva.objects.filter(reserva=reserva).select_related('servicio')
@@ -267,7 +253,6 @@ def listar_reservas_anfitrion(request):
             'total': reserva.total,
         })
 
-    # Obtener todos los posibles estados de reserva y tipos de servicio para los filtros
     estados_disponibles = EstadoReserva.objects.all()
     tipos_servicio_disponibles = TipoServicio.objects.all()
 
@@ -350,17 +335,9 @@ def detalle_gastronomia(request, servicio_id):
     }
     return render(request, 'core/detalle_gastronomia.html', context)
 
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
-from datetime import timedelta, date
-from .models import Servicio, DetalleReserva, EstadoReserva
 
 # --- API: Fechas ocupadas por hospedaje ---
 def api_hospedaje_fechas_ocupadas(request, servicio_id):
-    """
-    Devuelve un JSON con las fechas ocupadas para un servicio de tipo 'hospedaje'.
-    Se utiliza para deshabilitar fechas en el selector del frontend.
-    """
     servicio = get_object_or_404(Servicio, pk=servicio_id, tipo_servicio__nombre='hospedaje')
 
     try:
@@ -384,31 +361,40 @@ def api_hospedaje_fechas_ocupadas(request, servicio_id):
 
     return JsonResponse({'fechas_ocupadas': sorted(fechas_ocupadas)})
 
+
+# === INICIO DE LA SECCIÓN CORREGIDA ===
 def api_singleday_fechas_ocupadas(request, servicio_id):
     """
-    Devuelve un JSON con las fechas ocupadas para servicios de un solo día 
-    (actividad, gastronomia). Se utiliza para deshabilitar fechas en el frontend.
+    Devuelve un JSON con las fechas ocupadas para servicios de un solo día
+    (actividad, gastronomia) SOLAMENTE para el usuario actual.
     """
+    # Si el usuario no está autenticado, no tiene reservas, por lo que no se bloquea nada.
+    if not request.user.is_authenticated:
+        return JsonResponse({'fechas_ocupadas': []})
+    
     servicio = get_object_or_404(Servicio, pk=servicio_id)
     
-    # Solo consideramos reservas que están confirmadas o aceptadas.
+    # Se consideran todos los estados para evitar que un usuario reserve dos veces
+    # mientras una reserva anterior está pendiente o ya fue aceptada.
     try:
-        estados_ocupados = EstadoReserva.objects.filter(estado__in=['Aceptada', 'Confirmada'])
+        estados_validos = EstadoReserva.objects.filter(estado__in=['Aceptada', 'Confirmada', 'Pendiente'])
     except EstadoReserva.DoesNotExist:
         return JsonResponse({'fechas_ocupadas': []})
 
-    # Buscamos todas las reservas para este servicio que estén en los estados de ocupado
-    # y que sean para hoy o una fecha futura.
-    reservas_ocupadas = DetalleReserva.objects.filter(
+    # Filtrar las reservas por el servicio Y por el usuario que hace la solicitud.
+    # El campo en el modelo Reserva es 'usuario'.
+    reservas_del_usuario = DetalleReserva.objects.filter(
         servicio=servicio,
-        reserva__estado__in=estados_ocupados,
+        reserva__usuario=request.user,  # <-- CORRECCIÓN APLICADA AQUÍ
+        reserva__estado__in=estados_validos,
         reserva__fecha_inicio__gte=date.today()
     ).select_related('reserva')
 
-    # Extraemos las fechas de inicio de esas reservas. Usamos un 'set' para evitar duplicados.
-    fechas_ocupadas = sorted(list(set([dr.reserva.fecha_inicio.strftime('%Y-%m-%d') for dr in reservas_ocupadas])))
+    # Extraer las fechas de inicio de las reservas encontradas.
+    fechas_ocupadas_por_usuario = sorted(list(set([dr.reserva.fecha_inicio.strftime('%Y-%m-%d') for dr in reservas_del_usuario])))
 
-    return JsonResponse({'fechas_ocupadas': fechas_ocupadas})
+    return JsonResponse({'fechas_ocupadas': fechas_ocupadas_por_usuario})
+# === FIN DE LA SECCIÓN CORREGIDA ===
 
 
 
@@ -426,82 +412,65 @@ def procesar_pago(request):
         if not cart_items:
             return JsonResponse({'success': False, 'message': 'El carrito está vacío.'}, status=400)
 
-        # Obtener estados de reserva
         estado_pendiente, created = EstadoReserva.objects.get_or_create(estado='Pendiente')
-        # Si tienes un estado "Aceptada" para reservas ya confirmadas, puedes usarlo aquí después del pago
-        # estado_confirmada, created = EstadoReserva.objects.get_or_create(estado='Confirmada')
-
+        
         reservas_creadas = []
         total_acumulado_carrito = Decimal('0.00')
 
         for item_data in cart_items:
             try:
                 servicio_id = item_data.get('id')
-                # nombre_servicio = item_data.get('nombre') # No lo necesitamos, lo obtenemos del modelo
                 tipo_servicio_str = item_data.get('tipoServicio')
                 fechas = item_data.get('fechas', [])
-                noches = item_data.get('noches', 0) # Solo para hospedaje
-                cantidad_personas = item_data.get('cantidadPersonas', 1) # Solo para actividad/gastronomía
+                noches = item_data.get('noches', 0)
+                cantidad_personas = item_data.get('cantidadPersonas', 1)
                 subtotal_item = Decimal(str(item_data.get('subtotal', 0.00)))
 
                 servicio = get_object_or_404(Servicio, pk=servicio_id)
 
-                # Calcular el IVA para cada ítem (19%)
                 iva_item = subtotal_item * Decimal('0.19')
                 total_item = subtotal_item + iva_item
 
-                # Determinar fechas de inicio y fin para la Reserva principal
                 fecha_inicio_reserva = None
                 fecha_fin_reserva = None
 
                 if tipo_servicio_str == 'Hospedaje' and len(fechas) == 2:
-                    # Validar fechas: que no sean fechas ocupadas y que la fecha de fin sea posterior a la de inicio
-                    f_inicio_str = fechas[0]
-                    f_fin_str = fechas[1]
+                    f_inicio_str, f_fin_str = fechas[0], fechas[1]
                     fecha_inicio_reserva = date.fromisoformat(f_inicio_str)
                     fecha_fin_reserva = date.fromisoformat(f_fin_str)
                     
                     if fecha_fin_reserva <= fecha_inicio_reserva:
-                        raise ValueError(f"La fecha de fin para {servicio.nombre} debe ser posterior a la fecha de inicio.")
-
-                    # Aquí podrías añadir una validación más robusta para fechas ya ocupadas
-                    # Pero el frontend ya debería haberlo evitado, esto es un doble chequeo
-                    # if servicio.tipo_servicio.nombre.lower() == 'hospedaje':
-                    #     # Re-verificar disponibilidad en el backend si es crítico
-                    #     pass # Lógica de verificación de disponibilidad de fechas si es necesaria
-                        
-                    # En hospedaje, cantidad_dia será las noches
+                        raise ValueError(f"La fecha de fin para {servicio.nombre} debe ser posterior a la de inicio.")
+                    
                     cantidad_dias_detalle = noches 
-                    num_personas_detalle = 1 # Para hospedaje, num_persona suele ser 1 (la reserva es de la unidad de hospedaje)
+                    num_personas_detalle = 1
 
-                elif (tipo_servicio_str == 'Actividad' or tipo_servicio_str == 'Gastronomia') and len(fechas) == 1:
+                elif (tipo_servicio_str in ['Actividad', 'Gastronomia']) and len(fechas) == 1:
                     fecha_unica_str = fechas[0]
                     fecha_inicio_reserva = date.fromisoformat(fecha_unica_str)
-                    fecha_fin_reserva = fecha_inicio_reserva # Para servicios de un día, fin = inicio
+                    fecha_fin_reserva = fecha_inicio_reserva
                     
-                    cantidad_dias_detalle = 1 # Es un servicio de un día
+                    cantidad_dias_detalle = 1
                     num_personas_detalle = cantidad_personas
 
                 else:
                     raise ValueError(f"Fechas inválidas para el servicio {servicio.nombre} de tipo {tipo_servicio_str}.")
                 
-                # Crear la Reserva
                 reserva = Reserva.objects.create(
                     usuario=request.user,
                     fecha_reserva=timezone.now(),
                     fecha_inicio=fecha_inicio_reserva,
                     fecha_fin=fecha_fin_reserva,
-                    estado=estado_pendiente, # Estado inicial 'Pendiente'
-                    total=total_item # El total de esta reserva específica (subtotal + IVA del ítem)
+                    estado=estado_pendiente,
+                    total=total_item
                 )
 
-                # Crear el DetalleReserva asociado
                 detalle_reserva = DetalleReserva.objects.create(
                     reserva=reserva,
                     servicio=servicio,
                     cantidad_dia=cantidad_dias_detalle,
                     num_persona=num_personas_detalle,
-                    subtotal=subtotal_item # El subtotal del ítem, sin IVA
+                    subtotal=subtotal_item
                 )
                 reservas_creadas.append(reserva.id)
                 total_acumulado_carrito += total_item
@@ -511,17 +480,9 @@ def procesar_pago(request):
             except ValueError as ve:
                 return JsonResponse({'success': False, 'message': str(ve)}, status=400)
             except Exception as e:
-                # Si algo falla en la creación de una reserva, se registra el error
-                # y se podría revertir la transacción si se usara una transacción atómica
                 print(f"Error al procesar ítem del carrito: {e}")
                 return JsonResponse({'success': False, 'message': f'Error interno al procesar el ítem: {e}'}, status=500)
 
-        # Si todo fue exitoso, limpiar el carrito y devolver éxito
-        # Nota: Aquí no se hace la "simulación de pago" real, solo el guardado
-        # Una simulación real implicaría un POST a una pasarela de pago o similar.
-        # Para la simulación, podemos considerar que al llegar aquí, el pago "se hizo".
-
-        # Opcional: Actualizar el estado de las reservas a 'Confirmada' después de la "simulación de pago"
         estado_confirmada, created = EstadoReserva.objects.get_or_create(estado='Confirmada')
         for reserva_id in reservas_creadas:
             Reserva.objects.filter(id=reserva_id).update(estado=estado_confirmada)
@@ -529,7 +490,7 @@ def procesar_pago(request):
         return JsonResponse({
             'success': True, 
             'message': 'Reservas procesadas y guardadas con éxito. Redirigiendo a tu perfil...',
-            'total_pedido': float(total_acumulado_carrito) # Para información al frontend
+            'total_pedido': float(total_acumulado_carrito)
         }, status=200)
 
     except json.JSONDecodeError:

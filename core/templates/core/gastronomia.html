@@ -1,14 +1,23 @@
 {% load static %}
+{% load humanize %}
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>Manakea - Gastronomía</title>
     <link rel="stylesheet" href="{% static 'css/global.css' %}">
     <link rel="stylesheet" href="{% static 'css/carrito.css' %}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <title>Manakea - Gastronomía</title>
+
+    
 </head>
 <body>
 <div id="carrito-desplegable" class="carrito-desplegable">
@@ -84,38 +93,22 @@
         </div>
 
         {% if user.is_authenticated and user.tipo_usuario.tipo_nombre == 'cliente' %}
-        
-        <div id="mensaje-info-cliente" class="container my-4">
-            <div class="alert alert-warning shadow-lg rounded border border-dark p-4 text-center" style="font-size: 1.2rem; min-height: 180px;">
-                <i class="fa-solid fa-utensils fa-2x mb-3 d-block"></i>
-                <strong>¡Hola, {{ user.nombre|upper }}! DESCUBRE LAS GASTRONOMIAS DE MANAKEA TOURS:</strong>
-                <br>
-                <p class="mb-1">
-                    EXPLORA NUESTRAS GASTRONOMIAS EXCLUSIVAS PENSADAS PARA TI!!
-                    Reserva con anticipación y disfruta momentos inolvidables en el Cajón del Maipo.
+        <div class="container my-5" id="mensaje-info-cliente">
+            <div class="text-center p-4 border rounded-3 shadow-sm bg-light">
+                <i class="fa-solid fa-utensils fa-2x text-primary mb-3"></i>
+                <h4 class="fw-bold font-heading">
+                    Disponibilidad de Nuestras Experiencias
+                </h4>
+                <p class="lead text-muted px-lg-5 font-body">
+                    Disponibilidad de lunes a domingo. Recuerda que nuestras gastronomias se realizan dentro de una franja horaria de 13:00 a 17:00 hrs en las cuales puedes disfrutar de un tenedor libre al estilo que mas te guste!! Cada tenedor tiene su propia tarifa!!
                 </p>
-                <span class="text-muted small">
-                    Disponibilidad de lunes a domingo. Recuerda que nuestras gastronomias se realizan dentro de una franja horaria de 13:00 a 17:00 hrs
-                    en las cuales puedes disfrutar de un tenedor libre al estilo que mas te guste!!
-                    Cada tenedor tiene su propia tarifa!!
-                </span>
             </div>
         </div>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                setTimeout(function () {
-                    const mensaje = document.getElementById('mensaje-info-cliente');
-                    if (mensaje) {
-                        mensaje.classList.add('fade');
-                        setTimeout(() => mensaje.remove(), 1000); // remover después del fade
-                    }
-                }, 10000); // 10 segundos
-            });
-        </script>
         {% endif %}
 
         <section class="section-gastronomia">
-            <center><h1>GASTRONOMÍA</h1></center>
+            <h1 class="text-center font-heading text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">GASTRONOMÍA</h1>
+            
             <div class="container my-5">
                 <div class="row justify-content-center">
                     {% if servicios %}
@@ -127,8 +120,8 @@
                                     <img src="{% static 'img/no-image.jpg' %}" class="card-img-top" alt="Sin imagen">
                                 {% endif %}
                                 <div class="card-body">
-                                    <h5 class="card-title">{{ servicio.nombre }}</h5>
-                                    <p>{{ servicio.descripcion|truncatechars:100 }}</p>
+                                    <h5 class="card-title font-heading">{{ servicio.nombre }}</h5>
+                                    <p class="font-body">{{ servicio.descripcion|truncatechars:100 }}</p>
                                     <br><br/>
                                     {% if user.is_authenticated %}
                                         <a href="{% url 'detalle_gastronomia' servicio.id %}" class="btn btn-success d-block mx-auto" style="padding: 0.4rem 0.8rem; width: fit-content; font-size: 0.85rem;">Reservar</a>
@@ -174,6 +167,18 @@
     });
 </script>
 {% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const mensajeInfo = document.getElementById('mensaje-info-cliente');
+        if (mensajeInfo) {
+            setTimeout(function () {
+                mensajeInfo.classList.add('fade-out');
+                setTimeout(() => mensajeInfo.remove(), 1000); 
+            }, 10000); 
+        }
+    });
+</script>
 
 <script src="{% static 'js/carrito.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

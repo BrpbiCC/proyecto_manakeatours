@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     itemDetails += `<p>Personas: ${item.cantidadPersonas}</p>`;
                 }
                 
-                itemDetails += `<p>Subtotal: $${item.subtotal.toFixed(2)}</p>`;
+                itemDetails += `<p>Subtotal: $${item.subtotal.toLocaleString('es-CL')}</p>`;
                 itemDiv.innerHTML = itemDetails;
 
                 const removeButton = document.createElement('button');

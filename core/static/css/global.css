@@ -7,12 +7,6 @@ body {
     padding: 0;
 }
 
-/* --- Estilos de Imágenes de Fondo (Página Completa) --- */
-
-
-/* CAMBIO: Se sugiere usar .bg-profile para la página de perfil */
-
-
 /* Fondo para la Vista de Inicio */
 .bg {
     background-image: url(../img/cajon-1.jpg);
@@ -626,7 +620,7 @@ footer .btn-outline-light:hover {
 
 }
 
-
+/* bloqueo de dias en calendario  */
 .flatpickr-day.disabled, .flatpickr-day.flatpickr-disabled {
     background-color: #ffdddd !important;
     color: #ff0000 !important;
@@ -642,3 +636,20 @@ footer .btn-outline-light:hover {
     font-size: 0.8rem;
     color: red;
 }
+
+/* mensajes con estilo Actividad y gastronomia */
+
+.font-heading {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-body {
+  font-family: 'Lato', sans-serif;
+}
+
+
+.fade-out {
+        opacity: 0;
+        transition: opacity 1s ease-out;
+}
+

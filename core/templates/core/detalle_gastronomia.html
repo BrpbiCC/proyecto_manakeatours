@@ -114,7 +114,8 @@
         </div>
 
         <div class="container my-5">
-            <h2 class="text-center mb-4">NUESTRAS MEJORES EXPERIENCIAS GASTRONÓMICAS</h2>
+            <h1 class="text-center font-heading text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">NUESTRAS MEJORES EXPERIENCIAS GASTRONÓMICAS</h2>
+                <br> 
             <div class="row justify-content-center">
                 <div class="col-md-8 col-lg-6"> 
                     <div class="card h-100 shadow-lg"> 
@@ -253,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.reservation-form[data-service-type="Gastronomia"]').forEach(form => {
         const serviceId = form.dataset.serviceId;
         const occupiedDatesUrl = form.dataset.occupiedDatesUrl;
-        const dateInputSelector = `#fecha-reserva-${serviceId}`; // Selector corregido para coincidir con el HTML
+        const dateInputSelector = `#fecha-reserva-${serviceId}`; 
         
         fetchAndInitFlatpickr(dateInputSelector, singleDatePickerOptions, occupiedDatesUrl);
 
