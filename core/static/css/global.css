@@ -663,3 +663,20 @@ footer .btn-outline-light:hover {
         }
         
 .spinner-border { width: 3.5rem; height: 3.5rem; }
+
+/* --- Anulación para el botón Cerrar Sesión en el Navbar --- */
+
+/* Estilo para que se vea como un link normal */
+.navbar .btn-outline-danger {
+    border: none !important; /* Elimina el borde */
+    background-color: transparent !important; /* Sin fondo */
+    
+    /* Mismo color de texto que los otros enlaces */
+    color: #495057 !important; 
+}
+
+/* Efecto hover igual a los otros links (texto azul) */
+.navbar .btn-outline-danger:hover {
+    color: #007bff !important; /* Color de texto azul al pasar el mouse */
+    background-color: transparent !important; /* Asegura que no haya fondo en el hover */
+}
