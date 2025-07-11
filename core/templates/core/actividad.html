@@ -68,7 +68,7 @@
                         <a class="nav-link" href="{% url 'perfil' %}">PERFIL</a>
                     </li>
                     
-                    {% if user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %} {# 'cliente' en minúsculas #}
+                    {% if user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' %} 
                         <li class="nav-item">
                             <a class="nav-link carrito-trigger" href="#">
                                 <i class="bi bi-cart"></i>
@@ -121,7 +121,6 @@
             </div>
         </div>
 
-        {# Bloque del mensaje de información para clientes autenticados #}
         {% if user.is_authenticated and user.tipo_usuario.tipo_nombre == 'cliente' %}
         <div class="container msn-page-info-cliente">
             <div id="mensaje-info-cliente" class="alert alert-warning shadow-lg rounded border border-dark p-4 text-center" style="font-size: 1.2rem; min-height: 180px;">
