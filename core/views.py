@@ -22,7 +22,7 @@ def is_cliente(user):
     return user.is_authenticated and user.is_cliente
 
 def es_administrador_plataforma(user):
-    return user.is_authenticated and user.is_administrador
+    return user.is_authenticated and user.is_administrador_plataforma
 
 # --- Vistas Públicas ---
 def inicio(request):

@@ -113,6 +113,16 @@
                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-white bg-dark bg-opacity-50">
                     <h1 class="h3">BIENVENIDO A MANAKEA TOURS</h1>
                     <p class="lead">Conecta con lo auténtico, viaja con el alma</p>
+                    {# NUEVA LÍNEA: Mostrar rol y nombre/apellido si el usuario está autenticado #}
+                    {% if user.is_authenticated %}
+                        <p class="lead text-center mt-2">
+                            {% if user.tipo_usuario %}
+                                {{ user.tipo_usuario.tipo_nombre|upper }}: {{ user.nombre|upper }} {{ user.apellido|upper }}
+                            {% else %}
+                                USUARIO SIN ROL: {{ user.nombre|upper }} {{ user.apellido|upper }}
+                            {% endif %}
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -120,7 +130,7 @@
     <p></p>
 
     <div class="container mt-4 flex-grow-1">
-        {% if user.is_authenticated and user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'administrador' %}
+        {% if user.is_authenticated and user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'administrador_plataforma' %}
             <div class="row justify-content-center">
                 <div class="col-12 col-md-8 profile-card-col mb-4">
                     <div class="card shadow-sm h-100 admin-panel-card">
@@ -255,8 +265,6 @@
                     </div>
                 </div>
                 
-                {% comment %} El mapa solo se muestra para clientes {% endcomment %}
-                {% if user.tipo_usuario and user.tipo_usuario.tipo_nombre == 'cliente' or not user.is_authenticated %}
                 <div class="col-md-5 mapa-box">
                     <div class="card-custom">
                         <h5 class="text-center text-primary fw-bold">
@@ -265,7 +273,6 @@
                         <div id="map" style="height: 300px; border-radius: 10px;"></div>
                     </div>
                 </div>
-                {% endif %}
             </div>
         </div>
     </section>
@@ -278,7 +285,7 @@
                 <a href="https://www.tiktok.com" target="_blank" class="btn btn-outline-light mx-1"><i class="fa-brands fa-tiktok"></i></a>
                 <a href="https://www.facebook.com" target="_blank" class="btn btn-outline-light mx-1"><i class="bi bi-facebook"></i></a>
             </div>
-            <p class="mb-0 small">&copy; 2025 Todos los derechos reservados.</p>
+            <p class="mb-0 small">© 2025 Todos los derechos reservados.</p>
         </div>
     </footer>
 </section>
@@ -297,58 +304,42 @@
                 document.getElementById("temperatura").textContent = `Temperatura: ${data.main.temp}°C`;
                 document.getElementById("descripcion").textContent = `Descripción: ${data.weather[0].description}`;
                 document.getElementById("ciudad").textContent = `Ciudad: ${data.name}`;
+            } else {
+                console.error('Error al obtener datos del clima:', data.message);
+                document.getElementById("ciudad").textContent = 'Error al cargar clima';
+                document.getElementById("temperatura").textContent = '';
+                document.getElementById("descripcion").textContent = '';
             }
         })
-        .catch(err => console.log(err));
+        .catch(err => {
+            console.error('Error fetching weather data:', err);
+            document.getElementById("ciudad").textContent = 'Error al cargar clima';
+            document.getElementById("temperatura").textContent = '';
+            document.getElementById("descripcion").textContent = '';
+        });
 </script>
 
-<!-- Script para inicializar Google Maps y coordenadas --> 
 <script>
-  function initMap() {
-    const cajonMaipo = { lat: -33.75, lng: -70.35 };  // Coordenadas del Cajón del Maipo
-    const map = new google.maps.Map(document.getElementById("map"), {
-      zoom: 10,
-      center: cajonMaipo,
-    });
-    new google.maps.Marker({
-      position: cajonMaipo,
-      map: map,
-      title: "CAJON DEL MAIPO"
-    });
-  }
+    function initMap() {
+        const mapElement = document.getElementById("map");
+
+        if (mapElement) {
+            const cajonMaipo = { lat: -33.75, lng: -70.35 };
+            const map = new google.maps.Map(mapElement, {
+                zoom: 10,
+                center: cajonMaipo,
+            });
+            new google.maps.Marker({
+                position: cajonMaipo,
+                map: map,
+                title: "CAJON DEL MAIPO"
+            });
+        }
+    }
 </script>
-</section>
 
-<!-- Footer con redes sociales -->
-<footer class="bg-dark text-center text-white py-4 mt-5">
-  <div class="container">
-    <div class="mb-3">
-      <a href="https://www.instagram.com" target="_blank" class="btn btn-outline-light mx-1">
-        <i class="bi bi-instagram"></i>
-      </a>
-      <a href="https://www.twitter.com" target="_blank" class="btn btn-outline-light mx-1">
-        <i class="bi bi-twitter"></i>
-      </a>
-      <a href="https://www.tiktok.com" target="_blank" class="btn btn-outline-light mx-1">
-        <i class="bi bi-tiktok"></i>
-      </a>
-      <a href="https://www.facebook.com" target="_blank" class="btn btn-outline-light mx-1">
-        <i class="bi bi-facebook"></i>
-      </a>
-    </div>
-    <p class="mb-0 small">&copy; 2025 Todos los derechos reservados.</p>
-  </div>
-</footer>
-
-
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-
-<!-- Script para cargar Google Maps -->
 <script async
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYqeLHZ9y433qxiJ2xwTxKTyq8cnF5TlU&callback=initMap">
-</script> 
-
-</body>
-</html>
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYqeLHZ9y433qxiJ2xwTxKTyq8cnF5TlU&callback=initMap">
+</script>
+{# ¡IMPORTANTE! Recuerda reemplazar TU_API_KEY_AQUI con tu CLAVE REAL de Google Maps API #}
+{# Visita https://developers.google.com/maps/documentation/javascript/get-api-key para obtenerla y activarla #}

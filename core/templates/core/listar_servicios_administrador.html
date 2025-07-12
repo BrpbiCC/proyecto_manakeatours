@@ -398,7 +398,7 @@
                                         {% for servicio in servicios %}
                                         <tr>
                                             <td>{{ forloop.counter }}</td> 
-                                            <td>
+                                                <td>
                                                 {% if servicio.imagen %}
                                                     <img src="{{ servicio.imagen.url }}" alt="{{ servicio.nombre }}" class="img-thumbnail-service">
                                                 {% else %}
