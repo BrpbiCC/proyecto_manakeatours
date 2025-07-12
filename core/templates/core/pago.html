@@ -91,19 +91,19 @@
 
                             <div class="mb-3">
                                 <label for="card-number" class="form-label">Número de Tarjeta</label>
-                                <input type="text" class="form-control" id="card-number" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" required>
+                                <input type="text" class="form-control" id="card-number" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" inputmode="numeric" pattern="[0-9 ]{19}" required>
                                 <div class="invalid-feedback" id="card-number-feedback"></div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="card-expiry" class="form-label">Vencimiento (MM/AA)</label>
-                                    <input type="text" class="form-control" id="card-expiry" placeholder="MM/AA" maxlength="5" required>
+                                    <input type="text" class="form-control" id="card-expiry" placeholder="MM/AA" maxlength="5" inputmode="numeric" pattern="[0-9/]{5}" required>
                                     <div class="invalid-feedback" id="card-expiry-feedback"></div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="card-cvv" class="form-label">CVV</label>
-                                    <input type="text" class="form-control" id="card-cvv" placeholder="XXX" maxlength="4" required>
+                                    <input type="text" class="form-control" id="card-cvv" placeholder="XXX" maxlength="4" inputmode="numeric" pattern="[0-9]{3,4}" required>
                                     <div class="invalid-feedback" id="card-cvv-feedback"></div>
                                 </div>
                             </div>
@@ -168,6 +168,8 @@
                     formattedValue += value[i];
                 }
                 this.value = formattedValue;
+                // Immediate validation feedback on input for card number
+                validateField(cardNumberInput, cardNumberFeedback, isValidCardNumber, 'Por favor, ingrese un número de tarjeta válido (16 dígitos).');
             });
 
             // Expiry Date Formatting (MM/AA)
@@ -177,7 +179,17 @@
                     value = value.substring(0, 2) + '/' + value.substring(2);
                 }
                 this.value = value;
+                 // Immediate validation feedback on input for expiry date
+                validateField(cardExpiryInput, cardExpiryFeedback, isValidExpiryDate, 'Por favor, ingrese una fecha de vencimiento válida (MM/AA) y futura.');
             });
+
+            // CVV Input Restriction (only numbers)
+            cardCvvInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, ''); // Remove non-digits
+                // Immediate validation feedback on input for CVV
+                validateField(cardCvvInput, cardCvvFeedback, isValidCvv, 'Por favor, ingrese un CVV válido (3 o 4 dígitos).');
+            });
+
 
             // General validation function
             function validateField(inputElement, feedbackElement, validationFn, errorMessage) {
@@ -211,7 +223,9 @@
                 const currentYear = new Date().getFullYear() % 100; // Get last two digits of current year
                 const currentMonth = new Date().getMonth() + 1; // getMonth() is 0-indexed
 
+                // Check if the year is in the past
                 if (year < currentYear) return false;
+                // If year is current year, check if month is in the past
                 if (year === currentYear && month < currentMonth) return false;
 
                 return true;
@@ -230,15 +244,12 @@
                     let formIsValid = true;
 
                     // Validate each field
-                    if (!validateField(cardNumberInput, cardNumberFeedback, isValidCardNumber, 'Por favor, ingrese un número de tarjeta válido (16 dígitos).')) {
-                        formIsValid = false;
-                    }
-                    if (!validateField(cardExpiryInput, cardExpiryFeedback, isValidExpiryDate, 'Por favor, ingrese una fecha de vencimiento válida (MM/AA) y futura.')) {
-                        formIsValid = false;
-                    }
-                    if (!validateField(cardCvvInput, cardCvvFeedback, isValidCvv, 'Por favor, ingrese un CVV válido (3 o 4 dígitos).')) {
-                        formIsValid = false;
-                    }
+                    // Using a series of AND operations to ensure all validations are run
+                    // and `formIsValid` becomes false if any fails.
+                    formIsValid = validateField(cardNumberInput, cardNumberFeedback, isValidCardNumber, 'Por favor, ingrese un número de tarjeta válido (16 dígitos).') && formIsValid;
+                    formIsValid = validateField(cardExpiryInput, cardExpiryFeedback, isValidExpiryDate, 'Por favor, ingrese una fecha de vencimiento válida (MM/AA) y futura.') && formIsValid;
+                    formIsValid = validateField(cardCvvInput, cardCvvFeedback, isValidCvv, 'Por favor, ingrese un CVV válido (3 o 4 dígitos).') && formIsValid;
+
 
                     if (formIsValid) {
                         loadingOverlay.style.display = 'flex'; // Show loading overlay
